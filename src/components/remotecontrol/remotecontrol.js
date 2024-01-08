@@ -20,7 +20,6 @@ import '../../elements/emby-ratingbutton/emby-ratingbutton';
 import '../../elements/emby-slider/emby-slider';
 import ServerConnections from '../ServerConnections';
 import toast from '../toast/toast';
-import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
 
 let showMuteButton = true;
@@ -274,19 +273,6 @@ function updateSupportedCommands(context, commands) {
 }
 
 export default function () {
-    function toggleRepeat() {
-        switch (playbackManager.getRepeatMode()) {
-            case 'RepeatAll':
-                playbackManager.setRepeatMode('RepeatOne');
-                break;
-            case 'RepeatOne':
-                playbackManager.setRepeatMode('RepeatNone');
-                break;
-            case 'RepeatNone':
-                playbackManager.setRepeatMode('RepeatAll');
-        }
-    }
-
     function updatePlayerState(player, context, state) {
         lastPlayerState = state;
         const item = state.NowPlayingItem;
@@ -542,16 +528,6 @@ export default function () {
         });
     }
 
-    function onPlaybackStart(e, state) {
-        console.debug('remotecontrol event: ' + e.type);
-        const player = this;
-        onStateChanged.call(player, e, state);
-    }
-
-    function onRepeatModeChange() {
-        updateRepeatModeDisplay(playbackManager.getRepeatMode());
-    }
-
     function onShuffleQueueModeChange(updateView = true) {
         const shuffleMode = playbackManager.getQueueShuffleMode(this);
         const context = dlg;
@@ -596,58 +572,21 @@ export default function () {
         }
     }
 
-    function onPlaybackStopped(e, state) {
-        console.debug('remotecontrol event: ' + e.type);
-        const player = this;
-
-        if (!state.NextMediaType) {
-            updatePlayerState(player, dlg, {});
-            appRouter.back();
-        }
-    }
-
-    function onPlayPauseStateChanged() {
-        updatePlayPauseState(this.paused(), true);
-    }
-
     function onStateChanged(event, state) {
         const player = this;
         updatePlayerState(player, dlg, state);
         onPlaylistUpdate();
     }
 
-    function onTimeUpdate() {
-        const now = new Date().getTime();
-
-        if (now - lastUpdateTime >= 700) {
-            lastUpdateTime = now;
-            const player = this;
-            currentRuntimeTicks = playbackManager.duration(player);
-            updateTimeDisplay(playbackManager.currentTime(player) * 10000, currentRuntimeTicks);
-        }
-    }
-
-    function onVolumeChanged() {
-        const player = this;
-        updatePlayerVolumeState(dlg, player.isMuted(), player.getVolume());
-    }
-
     function releaseCurrentPlayer() {
         const player = currentPlayer;
 
         if (player) {
-            Events.off(player, 'playbackstart', onPlaybackStart);
             Events.off(player, 'statechange', onStateChanged);
-            Events.off(player, 'repeatmodechange', onRepeatModeChange);
             Events.off(player, 'shufflequeuemodechange', onShuffleQueueModeChange);
             Events.off(player, 'playlistitemremove', onPlaylistItemRemoved);
             Events.off(player, 'playlistitemmove', onPlaylistUpdate);
             Events.off(player, 'playlistitemadd', onPlaylistUpdate);
-            Events.off(player, 'playbackstop', onPlaybackStopped);
-            Events.off(player, 'volumechange', onVolumeChanged);
-            Events.off(player, 'pause', onPlayPauseStateChanged);
-            Events.off(player, 'unpause', onPlayPauseStateChanged);
-            Events.off(player, 'timeupdate', onTimeUpdate);
             currentPlayer = null;
         }
     }
@@ -661,34 +600,15 @@ export default function () {
             onStateChanged.call(player, {
                 type: 'init'
             }, state);
-            Events.on(player, 'playbackstart', onPlaybackStart);
             Events.on(player, 'statechange', onStateChanged);
-            Events.on(player, 'repeatmodechange', onRepeatModeChange);
             Events.on(player, 'shufflequeuemodechange', onShuffleQueueModeChange);
             Events.on(player, 'playlistitemremove', onPlaylistItemRemoved);
             Events.on(player, 'playlistitemmove', onPlaylistUpdate);
             Events.on(player, 'playlistitemadd', onPlaylistUpdate);
-            Events.on(player, 'playbackstop', onPlaybackStopped);
-            Events.on(player, 'volumechange', onVolumeChanged);
-            Events.on(player, 'pause', onPlayPauseStateChanged);
-            Events.on(player, 'unpause', onPlayPauseStateChanged);
-            Events.on(player, 'timeupdate', onTimeUpdate);
             const playerInfo = playbackManager.getPlayerInfo();
             const supportedCommands = playerInfo.supportedCommands;
             currentPlayerSupportedCommands = supportedCommands;
             updateSupportedCommands(context, supportedCommands);
-        }
-    }
-
-    function onBtnCommandClick() {
-        if (currentPlayer) {
-            if (this.classList.contains('repeatToggleButton')) {
-                toggleRepeat();
-            } else {
-                playbackManager.sendCommand({
-                    Name: this.getAttribute('data-command')
-                }, currentPlayer);
-            }
         }
     }
 
@@ -717,12 +637,7 @@ export default function () {
     }
 
     function bindEvents(context) {
-        const btnCommand = context.querySelectorAll('.btnCommand');
         const positionSlider = context.querySelector('.nowPlayingPositionSlider');
-
-        for (let i = 0, length = btnCommand.length; i < length; i++) {
-            btnCommand[i].addEventListener('click', onBtnCommandClick);
-        }
 
         context.querySelector('.btnToggleFullscreen').addEventListener('click', function () {
             if (currentPlayer) {
@@ -900,39 +815,6 @@ export default function () {
         return false;
     }
 
-    function init(ownerView, context) {
-        let volumecontrolHtml = '<div class="volumecontrol flex align-items-center flex-wrap-wrap justify-content-center">';
-        volumecontrolHtml += `<button is="paper-icon-button-light" class="buttonMute autoSize" title=${globalize.translate('Mute')}><span class="xlargePaperIconButton material-icons volume_up" aria-hidden="true"></span></button>`;
-        volumecontrolHtml += '<div class="sliderContainer nowPlayingVolumeSliderContainer"><input is="emby-slider" type="range" step="1" min="0" max="100" value="0" class="nowPlayingVolumeSlider"/></div>';
-        volumecontrolHtml += '</div>';
-        const optionsSection = context.querySelector('.playlistSectionButton');
-        if (!layoutManager.mobile) {
-            context.querySelector('.nowPlayingSecondaryButtons').insertAdjacentHTML('beforeend', volumecontrolHtml);
-            optionsSection.classList.remove('align-items-center', 'justify-content-center');
-            optionsSection.classList.add('align-items-right', 'justify-content-flex-end');
-            context.querySelector('.playlist').classList.remove('hide');
-            context.querySelector('.btnSavePlaylist').classList.remove('hide');
-            context.classList.add('padded-bottom');
-        } else {
-            optionsSection.querySelector('.btnTogglePlaylist').insertAdjacentHTML('afterend', volumecontrolHtml);
-            optionsSection.classList.add('playlistSectionButtonTransparent');
-            context.querySelector('.btnTogglePlaylist').classList.remove('hide');
-            context.querySelector('.playlistSectionButton').classList.remove('justify-content-center');
-            context.querySelector('.playlistSectionButton').classList.add('justify-content-space-between');
-        }
-
-        bindEvents(context);
-        context.querySelector('.sendMessageForm').addEventListener('submit', onMessageSubmit);
-        context.querySelector('.typeTextForm').addEventListener('submit', onSendStringSubmit);
-        Events.on(playbackManager, 'playerchange', onPlayerChange);
-
-        if (layoutManager.tv) {
-            const positionSlider = context.querySelector('.nowPlayingPositionSlider');
-            positionSlider.classList.add('focusable');
-            positionSlider.enableKeyboardDragging();
-        }
-    }
-
     function onDialogClosed() {
         releaseCurrentPlayer();
         Events.off(playbackManager, 'playerchange', onPlayerChange);
@@ -947,13 +829,21 @@ export default function () {
     let currentPlayer;
     let lastPlayerState;
     let currentPlayerSupportedCommands = [];
-    let lastUpdateTime = 0;
-    let currentRuntimeTicks = 0;
+    const currentRuntimeTicks = 0;
     const self = this;
 
     self.init = function (ownerView, context) {
-        dlg = context;
-        init(ownerView, dlg);
+        dlg = context; // .remoteControlContent
+        bindEvents(context);
+        context.querySelector('.sendMessageForm').addEventListener('submit', onMessageSubmit);
+        context.querySelector('.typeTextForm').addEventListener('submit', onSendStringSubmit);
+        Events.on(playbackManager, 'playerchange', onPlayerChange);
+
+        if (layoutManager.tv) {
+            const positionSlider = context.querySelector('.nowPlayingPositionSlider');
+            positionSlider.classList.add('focusable');
+            positionSlider.enableKeyboardDragging();
+        }
     };
 
     self.onShow = function () {

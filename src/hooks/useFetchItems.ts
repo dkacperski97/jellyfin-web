@@ -441,7 +441,7 @@ const fetchGetItemsViewByType = async (
                 response = await getItemsApi(api).getItems(
                     {
                         userId: user.Id,
-                        recursive: true,
+                        recursive: false,
                         imageTypeLimit: 1,
                         parentId: parentId ?? undefined,
                         enableImageTypes: [libraryViewSettings.ImageType, ImageType.Backdrop],
