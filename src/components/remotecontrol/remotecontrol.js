@@ -22,6 +22,7 @@ import ServerConnections from '../ServerConnections';
 import toast from '../toast/toast';
 import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
+import BtnPlayPause from './btnPlayPause';
 
 let showMuteButton = true;
 let showVolumeSlider = true;
@@ -353,7 +354,6 @@ export default function () {
             positionSlider.setIsClear(isProgressClear);
         }
 
-        updatePlayPauseState(playState.IsPaused, item != null);
         updateTimeDisplay(playState.PositionTicks, item ? item.RunTimeTicks : null);
         updatePlayerVolumeState(context, playState.IsMuted, playState.VolumeLevel);
 
@@ -449,22 +449,6 @@ export default function () {
                 }
             }
         }
-    }
-
-    function updatePlayPauseState(isPaused, isActive) {
-        const context = dlg;
-        const btnPlayPause = context.querySelector('.btnPlayPause');
-        const btnPlayPauseIcon = btnPlayPause.querySelector('.material-icons');
-
-        btnPlayPauseIcon.classList.remove('play_circle_filled', 'pause_circle_filled');
-        btnPlayPauseIcon.classList.add(isPaused ? 'play_circle_filled' : 'pause_circle_filled');
-
-        const playlistIndicator = context.querySelector('.playlistIndexIndicatorImage');
-        if (playlistIndicator) {
-            playlistIndicator.classList.toggle('playlistIndexIndicatorPausedImage', isPaused);
-        }
-
-        buttonVisible(btnPlayPause, isActive);
     }
 
     function updateTimeDisplay(positionTicks, runtimeTicks) {
@@ -606,10 +590,6 @@ export default function () {
         }
     }
 
-    function onPlayPauseStateChanged() {
-        updatePlayPauseState(this.paused(), true);
-    }
-
     function onStateChanged(event, state) {
         const player = this;
         updatePlayerState(player, dlg, state);
@@ -645,8 +625,6 @@ export default function () {
             Events.off(player, 'playlistitemadd', onPlaylistUpdate);
             Events.off(player, 'playbackstop', onPlaybackStopped);
             Events.off(player, 'volumechange', onVolumeChanged);
-            Events.off(player, 'pause', onPlayPauseStateChanged);
-            Events.off(player, 'unpause', onPlayPauseStateChanged);
             Events.off(player, 'timeupdate', onTimeUpdate);
             currentPlayer = null;
         }
@@ -670,8 +648,6 @@ export default function () {
             Events.on(player, 'playlistitemadd', onPlaylistUpdate);
             Events.on(player, 'playbackstop', onPlaybackStopped);
             Events.on(player, 'volumechange', onVolumeChanged);
-            Events.on(player, 'pause', onPlayPauseStateChanged);
-            Events.on(player, 'unpause', onPlayPauseStateChanged);
             Events.on(player, 'timeupdate', onTimeUpdate);
             const playerInfo = playbackManager.getPlayerInfo();
             const supportedCommands = playerInfo.supportedCommands;
@@ -742,11 +718,6 @@ export default function () {
         context.querySelector('.btnStop').addEventListener('click', function () {
             if (currentPlayer) {
                 playbackManager.stop(currentPlayer);
-            }
-        });
-        context.querySelector('.btnPlayPause').addEventListener('click', function () {
-            if (currentPlayer) {
-                playbackManager.playPause(currentPlayer);
             }
         });
         context.querySelector('.btnNextTrack').addEventListener('click', function () {
@@ -949,18 +920,22 @@ export default function () {
     let currentPlayerSupportedCommands = [];
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
+    const btnPlayPause = new BtnPlayPause();
     const self = this;
 
     self.init = function (ownerView, context) {
         dlg = context;
         init(ownerView, dlg);
+        btnPlayPause.init(ownerView, context);
     };
 
     self.onShow = function () {
         onShow(dlg);
+        btnPlayPause.onShow();
     };
 
     self.destroy = function () {
         onDialogClosed();
+        btnPlayPause.destroy();
     };
 }
