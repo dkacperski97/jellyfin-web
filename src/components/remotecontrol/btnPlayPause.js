@@ -33,35 +33,14 @@ export default function () {
         buttonVisible(btnPlayPause, isActive);
     }
 
-    function onPlaybackStart(e, state) {
-        const player = this;
-        onStateChanged.call(player, e, state);
-    }
-
-    function onPlaybackStopped(e, state) {
-        const player = this;
-
-        if (!state.NextMediaType) {
-            updatePlayerState(player, dlg, {});
-        }
-    }
-
     function onPlayPauseStateChanged() {
         updatePlayPauseState(this.paused(), true);
-    }
-
-    function onStateChanged(event, state) {
-        const player = this;
-        updatePlayerState(player, dlg, state);
     }
 
     function releaseCurrentPlayer() {
         const player = currentPlayer;
 
         if (player) {
-            Events.off(player, 'playbackstart', onPlaybackStart);
-            Events.off(player, 'statechange', onStateChanged);
-            Events.off(player, 'playbackstop', onPlaybackStopped);
             Events.off(player, 'pause', onPlayPauseStateChanged);
             Events.off(player, 'unpause', onPlayPauseStateChanged);
             currentPlayer = null;
@@ -73,13 +52,6 @@ export default function () {
         currentPlayer = player;
 
         if (player) {
-            const state = playbackManager.getPlayerState(player);
-            onStateChanged.call(player, {
-                type: 'init'
-            }, state);
-            Events.on(player, 'playbackstart', onPlaybackStart);
-            Events.on(player, 'statechange', onStateChanged);
-            Events.on(player, 'playbackstop', onPlaybackStopped);
             Events.on(player, 'pause', onPlayPauseStateChanged);
             Events.on(player, 'unpause', onPlayPauseStateChanged);
         }
@@ -93,18 +65,12 @@ export default function () {
         });
     }
 
-    function onPlayerChange() {
-        bindToPlayer(dlg, playbackManager.getCurrentPlayer());
-    }
-
     function init(ownerView, context) {
         bindEvents(context);
-        Events.on(playbackManager, 'playerchange', onPlayerChange);
     }
 
     function onDialogClosed() {
         releaseCurrentPlayer();
-        Events.off(playbackManager, 'playerchange', onPlayerChange);
     }
 
     function onShow(context) {
@@ -114,6 +80,23 @@ export default function () {
     let dlg;
     let currentPlayer;
     const self = this;
+
+    self.onPlaybackStopped = function (e, state) {
+        const player = this;
+
+        if (!state.NextMediaType) {
+            updatePlayerState(player, dlg, {});
+        }
+    };
+
+    self.onStateChanged = function (event, state) {
+        const player = this;
+        updatePlayerState(player, dlg, state);
+    };
+
+    self.onPlayerChange = function (context, player) {
+        bindToPlayer(context, player);
+    };
 
     self.init = function (ownerView, context) {
         dlg = context;

@@ -584,6 +584,7 @@ export default function () {
         console.debug('remotecontrol event: ' + e.type);
         const player = this;
 
+        btnPlayPause.onPlaybackStopped(e, state);
         if (!state.NextMediaType) {
             updatePlayerState(player, dlg, {});
             appRouter.back();
@@ -594,6 +595,7 @@ export default function () {
         const player = this;
         updatePlayerState(player, dlg, state);
         onPlaylistUpdate();
+        btnPlayPause.onStateChanged(event, state);
     }
 
     function onTimeUpdate() {
@@ -833,7 +835,9 @@ export default function () {
     }
 
     function onPlayerChange() {
-        bindToPlayer(dlg, playbackManager.getCurrentPlayer());
+        const player = playbackManager.getCurrentPlayer();
+        bindToPlayer(dlg, player);
+        btnPlayPause.onPlayerChange(dlg, player);
     }
 
     function onMessageSubmit(e) {
