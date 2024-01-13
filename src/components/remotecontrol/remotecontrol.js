@@ -21,7 +21,7 @@ import ServerConnections from '../ServerConnections';
 import toast from '../toast/toast';
 import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
-import VolumeControl, { getVolumeControlHtml } from './volumecontrol';
+import VolumeControl from './volumecontrol';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -548,7 +548,7 @@ export default function () {
         console.debug('remotecontrol event: ' + e.type);
         const player = this;
 
-        volumeControl.onPlaybackStopped(player, e, state);
+        volumeControl.onPlaybackStopped(state);
         if (!state.NextMediaType) {
             updatePlayerState(player, dlg, {});
             appRouter.back();
@@ -563,7 +563,7 @@ export default function () {
         const player = this;
         updatePlayerState(player, dlg, state);
         onPlaylistUpdate();
-        volumeControl.onStateChanged(player, event, state);
+        volumeControl.onStateChanged(state);
     }
 
     function onTimeUpdate() {
@@ -798,7 +798,7 @@ export default function () {
     function onPlayerChange() {
         const player = playbackManager.getCurrentPlayer();
         bindToPlayer(dlg, player);
-        volumeControl.onPlayerChange(dlg, player);
+        volumeControl.onPlayerChange(player);
     }
 
     function onMessageSubmit(e) {
@@ -837,7 +837,7 @@ export default function () {
     }
 
     function init(ownerView, context) {
-        const volumecontrolHtml = getVolumeControlHtml();
+        const volumecontrolHtml = VolumeControl.getHtml();
         const optionsSection = context.querySelector('.playlistSectionButton');
         if (!layoutManager.mobile) {
             context.querySelector('.nowPlayingSecondaryButtons').insertAdjacentHTML('beforeend', volumecontrolHtml);
@@ -882,13 +882,13 @@ export default function () {
     let currentPlayerSupportedCommands = [];
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
-    const volumeControl = new VolumeControl();
+    let volumeControl;
     const self = this;
 
     self.init = function (ownerView, context) {
         dlg = context;
         init(ownerView, dlg);
-        volumeControl.init(ownerView, context);
+        volumeControl = new VolumeControl(context);
     };
 
     self.onShow = function () {
