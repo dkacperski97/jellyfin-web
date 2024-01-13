@@ -6,7 +6,6 @@ import imageLoader from '../images/imageLoader';
 import { playbackManager } from '../playback/playbackmanager';
 import nowPlayingHelper from '../playback/nowplayinghelper';
 import Events from '../../utils/events.ts';
-import { appHost } from '../apphost';
 import globalize from '../../scripts/globalize';
 import layoutManager from '../layoutManager';
 import * as userSettings from '../../scripts/settings/userSettings';
@@ -22,10 +21,7 @@ import ServerConnections from '../ServerConnections';
 import toast from '../toast/toast';
 import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
-import ButtonMute, { getButtonMuteHtml } from './buttonMute';
-import VolumeSlider, { getVolumeSliderHtml } from './volumeSlider';
-let showMuteButton = true;
-let showVolumeSlider = true;
+import VolumeControl, { getVolumeControlHtml } from './volumeControl';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -358,7 +354,6 @@ export default function () {
 
         updatePlayPauseState(playState.IsPaused, item != null);
         updateTimeDisplay(playState.PositionTicks, item ? item.RunTimeTicks : null);
-        updatePlayerVolumeState(context);
 
         if (item && item.MediaType == 'Video') {
             context.classList.remove('hideVideoButtons');
@@ -403,27 +398,6 @@ export default function () {
         for (const toggleRepeatButton of toggleRepeatButtons) {
             toggleRepeatButton.classList.toggle(cssClass, repeatOn);
             toggleRepeatButton.innerHTML = innHtml;
-        }
-    }
-
-    function updatePlayerVolumeState(context) {
-        const supportedCommands = currentPlayerSupportedCommands;
-
-        if (supportedCommands.indexOf('Mute') === -1) {
-            showMuteButton = false;
-        }
-
-        if (supportedCommands.indexOf('SetVolume') === -1) {
-            showVolumeSlider = false;
-        }
-
-        if (currentPlayer.isLocalPlayer && appHost.supports('physicalvolumecontrol')) {
-            showMuteButton = false;
-            showVolumeSlider = false;
-        }
-
-        if (!showMuteButton && !showVolumeSlider) {
-            context.querySelector('.volumecontrol').classList.add('hide');
         }
     }
 
@@ -576,8 +550,7 @@ export default function () {
         console.debug('remotecontrol event: ' + e.type);
         const player = this;
 
-        buttonMute.onPlaybackStopped(player, e, state);
-        volumeSlider.onPlaybackStopped(player, e, state);
+        volumeControl.onPlaybackStopped(player, e, state);
         if (!state.NextMediaType) {
             updatePlayerState(player, dlg, {});
             appRouter.back();
@@ -592,8 +565,7 @@ export default function () {
         const player = this;
         updatePlayerState(player, dlg, state);
         onPlaylistUpdate();
-        buttonMute.onStateChanged(player, event, state);
-        volumeSlider.onStateChanged(player, event, state);
+        volumeControl.onStateChanged(player, event, state);
     }
 
     function onTimeUpdate() {
@@ -605,13 +577,6 @@ export default function () {
             currentRuntimeTicks = playbackManager.duration(player);
             updateTimeDisplay(playbackManager.currentTime(player) * 10000, currentRuntimeTicks);
         }
-    }
-
-    function onVolumeChanged() {
-        const player = this;
-        updatePlayerVolumeState(dlg);
-        buttonMute.onVolumeChanged(player);
-        volumeSlider.onVolumeChanged(player);
     }
 
     function releaseCurrentPlayer() {
@@ -626,7 +591,6 @@ export default function () {
             Events.off(player, 'playlistitemmove', onPlaylistUpdate);
             Events.off(player, 'playlistitemadd', onPlaylistUpdate);
             Events.off(player, 'playbackstop', onPlaybackStopped);
-            Events.off(player, 'volumechange', onVolumeChanged);
             Events.off(player, 'pause', onPlayPauseStateChanged);
             Events.off(player, 'unpause', onPlayPauseStateChanged);
             Events.off(player, 'timeupdate', onTimeUpdate);
@@ -651,7 +615,6 @@ export default function () {
             Events.on(player, 'playlistitemmove', onPlaylistUpdate);
             Events.on(player, 'playlistitemadd', onPlaylistUpdate);
             Events.on(player, 'playbackstop', onPlaybackStopped);
-            Events.on(player, 'volumechange', onVolumeChanged);
             Events.on(player, 'pause', onPlayPauseStateChanged);
             Events.on(player, 'unpause', onPlayPauseStateChanged);
             Events.on(player, 'timeupdate', onTimeUpdate);
@@ -828,16 +791,14 @@ export default function () {
             if (context.querySelector('.playlist').classList.contains('hide')) {
                 context.querySelector('.playlist').classList.remove('hide');
                 context.querySelector('.btnSavePlaylist').classList.remove('hide');
-                context.querySelector('.volumecontrol').classList.add('hide');
+                context.querySelector('.volumeControlContainer').classList.add('hide');
                 if (layoutManager.mobile) {
                     context.querySelector('.playlistSectionButton').classList.remove('playlistSectionButtonTransparent');
                 }
             } else {
                 context.querySelector('.playlist').classList.add('hide');
                 context.querySelector('.btnSavePlaylist').classList.add('hide');
-                if (showMuteButton || showVolumeSlider) {
-                    context.querySelector('.volumecontrol').classList.remove('hide');
-                }
+                context.querySelector('.volumeControlContainer').classList.remove('hide');
                 if (layoutManager.mobile) {
                     context.querySelector('.playlistSectionButton').classList.add('playlistSectionButtonTransparent');
                 }
@@ -848,8 +809,7 @@ export default function () {
     function onPlayerChange() {
         const player = playbackManager.getCurrentPlayer();
         bindToPlayer(dlg, player);
-        buttonMute.onPlayerChange(dlg, player);
-        volumeSlider.onPlayerChange(dlg, player);
+        volumeControl.onPlayerChange(dlg, player);
     }
 
     function onMessageSubmit(e) {
@@ -888,10 +848,7 @@ export default function () {
     }
 
     function init(ownerView, context) {
-        let volumecontrolHtml = '<div class="volumecontrol flex align-items-center flex-wrap-wrap justify-content-center">';
-        volumecontrolHtml += getButtonMuteHtml();
-        volumecontrolHtml += getVolumeSliderHtml();
-        volumecontrolHtml += '</div>';
+        const volumecontrolHtml = getVolumeControlHtml();
         const optionsSection = context.querySelector('.playlistSectionButton');
         if (!layoutManager.mobile) {
             context.querySelector('.nowPlayingSecondaryButtons').insertAdjacentHTML('beforeend', volumecontrolHtml);
@@ -901,7 +858,7 @@ export default function () {
             context.querySelector('.btnSavePlaylist').classList.remove('hide');
             context.classList.add('padded-bottom');
         } else {
-            optionsSection.querySelector('.btnTogglePlaylist').insertAdjacentHTML('afterend', volumecontrolHtml);
+            optionsSection.querySelector('.volumeControlContainer').innerHTML = volumecontrolHtml;
             optionsSection.classList.add('playlistSectionButtonTransparent');
             context.querySelector('.btnTogglePlaylist').classList.remove('hide');
             context.querySelector('.playlistSectionButton').classList.remove('justify-content-center');
@@ -936,26 +893,22 @@ export default function () {
     let currentPlayerSupportedCommands = [];
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
-    const buttonMute = new ButtonMute();
-    const volumeSlider = new VolumeSlider();
+    const volumeControl = new VolumeControl();
     const self = this;
 
     self.init = function (ownerView, context) {
         dlg = context;
         init(ownerView, dlg);
-        buttonMute.init(ownerView, context);
-        volumeSlider.init(ownerView, context);
+        volumeControl.init(ownerView, context);
     };
 
     self.onShow = function () {
-        buttonMute.onShow();
-        volumeSlider.onShow();
+        volumeControl.onShow();
         onShow(dlg);
     };
 
     self.destroy = function () {
-        buttonMute.destroy();
-        volumeSlider.destroy();
+        volumeControl.destroy();
         onDialogClosed();
     };
 }
