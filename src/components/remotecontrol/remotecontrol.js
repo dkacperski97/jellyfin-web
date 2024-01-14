@@ -23,7 +23,7 @@ import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
 import VolumeControl from './volumeControl';
 import SendMessageSection from './sendMessageSection';
 import SendTextSection from './sendTextSection';
-import PlaybackCommandButton from './playbackCommandButton';
+import NavigationSection from './navigationSection';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -301,12 +301,7 @@ export default function () {
 
         sendMessageSection.updatePlayerState(context, supportedCommands);
         sendTextSection.updatePlayerState(context, supportedCommands);
-
-        if (supportedCommands.includes('Select') && !currentPlayer.isLocalPlayer) {
-            context.querySelector('.navigationSection').classList.remove('hide');
-        } else {
-            context.querySelector('.navigationSection').classList.add('hide');
-        }
+        navigationSection.updatePlayerState(context, supportedCommands, currentPlayer);
 
         if (isSupportedCommands && !currentPlayer.isLocalPlayer) {
             context.querySelector('.remoteControlSection').classList.remove('hide');
@@ -798,9 +793,7 @@ export default function () {
         volumeControl.onPlayerChange(player);
         sendMessageSection.onPlayerChange(player);
         sendTextSection.onPlayerChange(player);
-        for (let i = 0, length = playbackCommandButtons.length; i < length; i++) {
-            playbackCommandButtons[i].onPlayerChange(player);
-        }
+        navigationSection.onPlayerChange(player);
     }
 
     function init(ownerView, context) {
@@ -850,7 +843,7 @@ export default function () {
     let volumeControl;
     let sendMessageSection;
     let sendTextSection;
-    let playbackCommandButtons;
+    let navigationSection;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -859,12 +852,7 @@ export default function () {
         volumeControl = new VolumeControl(dlg);
         sendMessageSection = new SendMessageSection(dlg);
         sendTextSection = new SendTextSection(dlg);
-        playbackCommandButtons = [];
-        const navigationSection = context.querySelector('.navigationSection');
-        const buttons = navigationSection.querySelectorAll('.btnCommand');
-        for (let i = 0, length = buttons.length; i < length; i++) {
-            playbackCommandButtons.push(new PlaybackCommandButton(buttons[i]));
-        }
+        navigationSection = new NavigationSection(dlg);
     };
 
     self.onShow = function () {
@@ -872,9 +860,7 @@ export default function () {
         volumeControl.onShow(player);
         sendMessageSection.onShow(player);
         sendTextSection.onShow(player);
-        for (let i = 0, length = playbackCommandButtons.length; i < length; i++) {
-            playbackCommandButtons[i].onShow(player);
-        }
+        navigationSection.onShow(player);
         onShow(dlg, player);
     };
 
@@ -882,9 +868,7 @@ export default function () {
         volumeControl.destroy();
         sendMessageSection.destroy();
         sendTextSection.destroy();
-        for (let i = 0, length = playbackCommandButtons.length; i < length; i++) {
-            playbackCommandButtons[i].destroy();
-        }
+        navigationSection.destroy();
         onDialogClosed();
     };
 }
