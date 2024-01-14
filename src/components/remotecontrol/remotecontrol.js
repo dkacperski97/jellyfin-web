@@ -18,10 +18,11 @@ import './remotecontrol.scss';
 import '../../elements/emby-ratingbutton/emby-ratingbutton';
 import '../../elements/emby-slider/emby-slider';
 import ServerConnections from '../ServerConnections';
-import toast from '../toast/toast';
 import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
 import VolumeControl from './volumeControl';
+import SendMessageSection from './sendMessageSection';
+import SendTextSection from './sendTextSection';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -297,17 +298,8 @@ export default function () {
         updateAudioTracksDisplay(player, context);
         updateSubtitleTracksDisplay(player, context);
 
-        if (supportedCommands.includes('DisplayMessage') && !currentPlayer.isLocalPlayer) {
-            context.querySelector('.sendMessageSection').classList.remove('hide');
-        } else {
-            context.querySelector('.sendMessageSection').classList.add('hide');
-        }
-
-        if (supportedCommands.includes('SendString') && !currentPlayer.isLocalPlayer) {
-            context.querySelector('.sendTextSection').classList.remove('hide');
-        } else {
-            context.querySelector('.sendTextSection').classList.add('hide');
-        }
+        sendMessageSection.updatePlayerState(context, supportedCommands);
+        sendTextSection.updatePlayerState(context, supportedCommands);
 
         if (supportedCommands.includes('Select') && !currentPlayer.isLocalPlayer) {
             context.querySelector('.navigationSection').classList.remove('hide');
@@ -810,41 +802,8 @@ export default function () {
         const player = playbackManager.getCurrentPlayer();
         bindToPlayer(dlg, player);
         volumeControl.onPlayerChange(player);
-    }
-
-    function onMessageSubmit(e) {
-        const form = e.target;
-        playbackManager.sendCommand({
-            Name: 'DisplayMessage',
-            Arguments: {
-                Header: form.querySelector('#txtMessageTitle').value,
-                Text: form.querySelector('#txtMessageText', form).value
-            }
-        }, currentPlayer);
-        form.querySelector('input').value = '';
-
-        toast(globalize.translate('MessageSent'));
-
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-    }
-
-    function onSendStringSubmit(e) {
-        const form = e.target;
-        playbackManager.sendCommand({
-            Name: 'SendString',
-            Arguments: {
-                String: form.querySelector('#txtTypeText', form).value
-            }
-        }, currentPlayer);
-        form.querySelector('input').value = '';
-
-        toast(globalize.translate('TextSent'));
-
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
+        sendMessageSection.onPlayerChange(player);
+        sendTextSection.onPlayerChange(player);
     }
 
     function init(ownerView, context) {
@@ -866,8 +825,6 @@ export default function () {
         }
 
         bindEvents(context);
-        context.querySelector('.sendMessageForm').addEventListener('submit', onMessageSubmit);
-        context.querySelector('.typeTextForm').addEventListener('submit', onSendStringSubmit);
         Events.on(playbackManager, 'playerchange', onPlayerChange);
 
         if (layoutManager.tv) {
@@ -894,22 +851,30 @@ export default function () {
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
     let volumeControl;
+    let sendMessageSection;
+    let sendTextSection;
     const self = this;
 
     self.init = function (ownerView, context) {
         dlg = context;
         init(ownerView, dlg);
-        volumeControl = new VolumeControl(context);
+        volumeControl = new VolumeControl(dlg);
+        sendMessageSection = new SendMessageSection(dlg);
+        sendTextSection = new SendTextSection(dlg);
     };
 
     self.onShow = function () {
         const player = playbackManager.getCurrentPlayer();
         volumeControl.onShow(player);
+        sendMessageSection.onShow(player);
+        sendTextSection.onShow(player);
         onShow(dlg, player);
     };
 
     self.destroy = function () {
         volumeControl.destroy();
+        sendMessageSection.destroy();
+        sendTextSection.destroy();
         onDialogClosed();
     };
 }
