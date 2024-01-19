@@ -21,9 +21,7 @@ import ServerConnections from '../ServerConnections';
 import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
 import VolumeControl from './volumeControl';
-import SendMessageSection from './sendMessageSection';
-import SendTextSection from './sendTextSection';
-import NavigationSection from './navigationSection';
+import RemoteControlSection from './remoteControlSection';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -294,20 +292,11 @@ export default function () {
         const supportedCommands = playerInfo.supportedCommands;
         currentPlayerSupportedCommands = supportedCommands;
         const playState = state.PlayState || {};
-        const isSupportedCommands = supportedCommands.includes('DisplayMessage') || supportedCommands.includes('SendString') || supportedCommands.includes('Select');
         buttonVisible(context.querySelector('.btnToggleFullscreen'), item && item.MediaType == 'Video' && supportedCommands.includes('ToggleFullscreen'));
         updateAudioTracksDisplay(player, context);
         updateSubtitleTracksDisplay(player, context);
 
-        sendMessageSection.updatePlayerState(context, supportedCommands);
-        sendTextSection.updatePlayerState(context, supportedCommands);
-        navigationSection.updatePlayerState(context, supportedCommands, currentPlayer);
-
-        if (isSupportedCommands && !currentPlayer.isLocalPlayer) {
-            context.querySelector('.remoteControlSection').classList.remove('hide');
-        } else {
-            context.querySelector('.remoteControlSection').classList.add('hide');
-        }
+        remoteControlSection.updatePlayerState(context, supportedCommands, currentPlayer);
 
         buttonVisible(context.querySelector('.btnLyrics'), item?.Type === 'Audio' && !layoutManager.mobile);
         buttonVisible(context.querySelector('.btnStop'), item != null);
@@ -791,9 +780,7 @@ export default function () {
         const player = playbackManager.getCurrentPlayer();
         bindToPlayer(dlg, player);
         volumeControl.onPlayerChange(player);
-        sendMessageSection.onPlayerChange(player);
-        sendTextSection.onPlayerChange(player);
-        navigationSection.onPlayerChange(player);
+        remoteControlSection.onPlayerChange(player);
     }
 
     function init(ownerView, context) {
@@ -841,34 +828,26 @@ export default function () {
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
     let volumeControl;
-    let sendMessageSection;
-    let sendTextSection;
-    let navigationSection;
+    let remoteControlSection;
     const self = this;
 
     self.init = function (ownerView, context) {
         dlg = context;
         init(ownerView, dlg);
         volumeControl = new VolumeControl(dlg);
-        sendMessageSection = new SendMessageSection(dlg);
-        sendTextSection = new SendTextSection(dlg);
-        navigationSection = new NavigationSection(dlg);
+        remoteControlSection = new RemoteControlSection(dlg);
     };
 
     self.onShow = function () {
         const player = playbackManager.getCurrentPlayer();
         volumeControl.onShow(player);
-        sendMessageSection.onShow(player);
-        sendTextSection.onShow(player);
-        navigationSection.onShow(player);
+        remoteControlSection.onShow(player);
         onShow(dlg, player);
     };
 
     self.destroy = function () {
         volumeControl.destroy();
-        sendMessageSection.destroy();
-        sendTextSection.destroy();
-        navigationSection.destroy();
+        remoteControlSection.destroy();
         onDialogClosed();
     };
 }
