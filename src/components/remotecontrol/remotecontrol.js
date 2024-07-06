@@ -9,7 +9,6 @@ import Events from '../../utils/events.ts';
 import globalize from '../../scripts/globalize';
 import layoutManager from '../layoutManager';
 import * as userSettings from '../../scripts/settings/userSettings';
-import itemContextMenu from '../itemContextMenu';
 import '../cardbuilder/card.scss';
 import '../../elements/emby-button/emby-button';
 import '../../elements/emby-button/paper-icon-button-light';
@@ -22,6 +21,7 @@ import { appRouter } from '../router/appRouter';
 import VolumeControl from './volumeControl';
 import RemoteControlSection from './remoteControlSection';
 import NowPlayingPageImage from './nowPlayingPageImage';
+import ToggleContextMenuButton from './toggleContextMenuButton';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -146,38 +146,8 @@ function updateNowPlayingInfo(context, state) {
             context.querySelector('.nowPlayingPageTitle').classList.add('hide');
         }
 
-        let contextButton = context.querySelector('.btnToggleContextMenu');
-        // We remove the previous event listener by replacing the item in each update event
-        const autoFocusContextButton = document.activeElement === contextButton;
-        const contextButtonClone = contextButton.cloneNode(true);
-        contextButton.parentNode.replaceChild(contextButtonClone, contextButton);
-        contextButton = context.querySelector('.btnToggleContextMenu');
-        if (autoFocusContextButton) {
-            contextButton.focus();
-        }
-        const options = {
-            play: false,
-            queue: false,
-            stopPlayback: true,
-            clearQueue: true,
-            openAlbum: false,
-            positionTo: contextButton
-        };
-        const apiClient = ServerConnections.getApiClient(item.ServerId);
-        apiClient.getItem(apiClient.getCurrentUserId(), item.Id).then(function (fullItem) {
-            apiClient.getCurrentUser().then(function (user) {
-                contextButton.addEventListener('click', function () {
-                    itemContextMenu.show(Object.assign({
-                        item: fullItem,
-                        user: user,
-                        isMobile: layoutManager.mobile
-                    }, options))
-                        .catch(() => { /* no-op */ });
-                });
-            });
-        });
-
         setBackdrops([item]);
+        const apiClient = ServerConnections.getApiClient(item.ServerId);
         apiClient.getItem(apiClient.getCurrentUserId(), item.Id).then(function (fullItem) {
             const userData = fullItem.UserData || {};
             const likes = userData.Likes == null ? '' : userData.Likes;
@@ -280,6 +250,7 @@ export default function () {
         onShuffleQueueModeChange(false);
         updateNowPlayingInfo(context, state);
         nowPlayingPageImage.updatePlayerState(context, state);
+        toggleContextMenuButton.updatePlayerState(context, state);
     }
 
     function updateAudioTracksDisplay(player, context) {
@@ -767,6 +738,7 @@ export default function () {
     let volumeControl;
     let remoteControlSection;
     let nowPlayingPageImage;
+    let toggleContextMenuButton;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -775,6 +747,7 @@ export default function () {
         volumeControl = new VolumeControl(dlg);
         remoteControlSection = new RemoteControlSection(dlg);
         nowPlayingPageImage = new NowPlayingPageImage();
+        toggleContextMenuButton = new ToggleContextMenuButton();
     };
 
     self.onShow = function () {
