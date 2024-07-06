@@ -19,9 +19,9 @@ import '../../elements/emby-ratingbutton/emby-ratingbutton';
 import '../../elements/emby-slider/emby-slider';
 import ServerConnections from '../ServerConnections';
 import { appRouter } from '../router/appRouter';
-import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
 import VolumeControl from './volumeControl';
 import RemoteControlSection from './remoteControlSection';
+import NowPlayingPageImage from './nowPlayingPageImage';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -88,55 +88,11 @@ function getNowPlayingNameHtml(nowPlayingItem, includeNonNameInfo) {
     }).join('<br/>');
 }
 
-function seriesImageUrl(item, options) {
-    if (item.Type !== 'Episode') {
-        return null;
-    }
-
-    options = options || {};
-    options.type = options.type || 'Primary';
-    if (options.type === 'Primary' && item.SeriesPrimaryImageTag) {
-        options.tag = item.SeriesPrimaryImageTag;
-        return ServerConnections.getApiClient(item.ServerId).getScaledImageUrl(item.SeriesId, options);
-    }
-
-    if (options.type === 'Thumb') {
-        if (item.SeriesThumbImageTag) {
-            options.tag = item.SeriesThumbImageTag;
-            return ServerConnections.getApiClient(item.ServerId).getScaledImageUrl(item.SeriesId, options);
-        }
-
-        if (item.ParentThumbImageTag) {
-            options.tag = item.ParentThumbImageTag;
-            return ServerConnections.getApiClient(item.ServerId).getScaledImageUrl(item.ParentThumbItemId, options);
-        }
-    }
-
-    return null;
-}
-
-function imageUrl(item, options) {
-    options = options || {};
-    options.type = options.type || 'Primary';
-
-    if (item.ImageTags?.[options.type]) {
-        options.tag = item.ImageTags[options.type];
-        return ServerConnections.getApiClient(item.ServerId).getScaledImageUrl(item.PrimaryImageItemId || item.Id, options);
-    }
-
-    if (item.AlbumId && item.AlbumPrimaryImageTag) {
-        options.tag = item.AlbumPrimaryImageTag;
-        return ServerConnections.getApiClient(item.ServerId).getScaledImageUrl(item.AlbumId, options);
-    }
-
-    return null;
-}
-
-function updateNowPlayingInfo(context, state, serverId) {
+function updateNowPlayingInfo(context, state) {
     const item = state.NowPlayingItem;
-    const displayName = item ? getNowPlayingNameHtml(item).replace('<br/>', ' - ') : '';
     if (item) {
-        const nowPlayingServerId = (item.ServerId || serverId);
+        const nowPlayingServerId = item.ServerId;
+        const displayName = getNowPlayingNameHtml(item).replace('<br/>', ' - ');
         if (item.Type == 'AudioBook' || item.Type == 'Audio' || item.MediaStreams[0].Type == 'Audio') {
             let artistsSeries = '';
             let albumName = '';
@@ -190,12 +146,6 @@ function updateNowPlayingInfo(context, state, serverId) {
             context.querySelector('.nowPlayingPageTitle').classList.add('hide');
         }
 
-        const url = seriesImageUrl(item, {
-            maxHeight: 300
-        }) || imageUrl(item, {
-            maxHeight: 300
-        });
-
         let contextButton = context.querySelector('.btnToggleContextMenu');
         // We remove the previous event listener by replacing the item in each update event
         const autoFocusContextButton = document.activeElement === contextButton;
@@ -226,7 +176,7 @@ function updateNowPlayingInfo(context, state, serverId) {
                 });
             });
         });
-        setImageUrl(context, state, url);
+
         setBackdrops([item]);
         apiClient.getItem(apiClient.getCurrentUserId(), item.Id).then(function (fullItem) {
             const userData = fullItem.UserData || {};
@@ -237,20 +187,6 @@ function updateNowPlayingInfo(context, state, serverId) {
     } else {
         clearBackdrop();
         context.querySelector('.nowPlayingPageUserDataButtons').innerHTML = '';
-    }
-}
-
-function setImageUrl(context, state, url) {
-    const item = state.NowPlayingItem;
-    const imgContainer = context.querySelector('.nowPlayingPageImageContainer');
-
-    if (url) {
-        imgContainer.innerHTML = '<img class="nowPlayingPageImage" src="' + url + '" />';
-
-        context.querySelector('.nowPlayingPageImage').classList.toggle('nowPlayingPageImageAudio', item.Type === 'Audio');
-        context.querySelector('.nowPlayingPageImage').classList.toggle('nowPlayingPageImagePoster', item.Type !== 'Audio');
-    } else {
-        imgContainer.innerHTML = '<div class="nowPlayingPageImageContainerNoAlbum"><button data-action="link" class="cardImageContainer coveredImage ' + getDefaultBackgroundClass(item.Name) + ' cardContent cardContent-shadow itemAction"><span class="cardImageIcon material-icons album" aria-hidden="true"></span></button></div>';
     }
 }
 
@@ -343,6 +279,7 @@ export default function () {
         updateRepeatModeDisplay(playbackManager.getRepeatMode());
         onShuffleQueueModeChange(false);
         updateNowPlayingInfo(context, state);
+        nowPlayingPageImage.updatePlayerState(context, state);
     }
 
     function updateAudioTracksDisplay(player, context) {
@@ -829,6 +766,7 @@ export default function () {
     let currentRuntimeTicks = 0;
     let volumeControl;
     let remoteControlSection;
+    let nowPlayingPageImage;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -836,6 +774,7 @@ export default function () {
         init(ownerView, dlg);
         volumeControl = new VolumeControl(dlg);
         remoteControlSection = new RemoteControlSection(dlg);
+        nowPlayingPageImage = new NowPlayingPageImage();
     };
 
     self.onShow = function () {
