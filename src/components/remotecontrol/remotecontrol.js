@@ -1,10 +1,8 @@
-import escapeHtml from 'escape-html';
 import datetime from '../../scripts/datetime';
 import { clearBackdrop, setBackdrops } from '../backdrop/backdrop';
 import listView from '../listview/listview';
 import imageLoader from '../images/imageLoader';
 import { playbackManager } from '../playback/playbackmanager';
-import nowPlayingHelper from '../playback/nowplayinghelper';
 import Events from '../../utils/events.ts';
 import globalize from '../../scripts/globalize';
 import layoutManager from '../layoutManager';
@@ -22,6 +20,7 @@ import VolumeControl from './volumeControl';
 import RemoteControlSection from './remoteControlSection';
 import NowPlayingPageImage from './nowPlayingPageImage';
 import ToggleContextMenuButton from './toggleContextMenuButton';
+import NowPlayingInfoContainerMedia from './nowPlayingInfoContainerMedia';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -82,70 +81,9 @@ function showSubtitleMenu(context, player, button) {
     });
 }
 
-function getNowPlayingNameHtml(nowPlayingItem, includeNonNameInfo) {
-    return nowPlayingHelper.getNowPlayingNames(nowPlayingItem, includeNonNameInfo).map(function (i) {
-        return escapeHtml(i.text);
-    }).join('<br/>');
-}
-
 function updateNowPlayingInfo(context, state) {
     const item = state.NowPlayingItem;
     if (item) {
-        const nowPlayingServerId = item.ServerId;
-        const displayName = getNowPlayingNameHtml(item).replace('<br/>', ' - ');
-        if (item.Type == 'AudioBook' || item.Type == 'Audio' || item.MediaStreams[0].Type == 'Audio') {
-            let artistsSeries = '';
-            let albumName = '';
-            if (item.Artists != null) {
-                if (item.ArtistItems != null) {
-                    for (const artist of item.ArtistItems) {
-                        artistsSeries += `<a class="button-link emby-button" is="emby-linkbutton" href="#/details?id=${artist.Id}&serverId=${nowPlayingServerId}">${escapeHtml(artist.Name)}</a>`;
-                        if (artist !== item.ArtistItems.slice(-1)[0]) {
-                            artistsSeries += ', ';
-                        }
-                    }
-                } else if (item.Artists) {
-                    // For some reason, Chromecast Player doesn't return a item.ArtistItems object, so we need to fallback
-                    // to normal item.Artists item.
-                    // TODO: Normalise fields returned by all the players
-                    for (const artist of item.Artists) {
-                        artistsSeries += `<a>${escapeHtml(artist)}</a>`;
-                        if (artist !== item.Artists.slice(-1)[0]) {
-                            artistsSeries += ', ';
-                        }
-                    }
-                }
-            }
-            if (item.Album != null) {
-                albumName = '<a class="button-link emby-button" is="emby-linkbutton" href="#/details?id=' + item.AlbumId + `&serverId=${nowPlayingServerId}">` + escapeHtml(item.Album) + '</a>';
-            }
-            context.querySelector('.nowPlayingAlbum').innerHTML = albumName;
-            context.querySelector('.nowPlayingArtist').innerHTML = artistsSeries;
-            context.querySelector('.nowPlayingSongName').innerText = item.Name;
-        } else if (item.Type == 'Episode') {
-            if (item.SeasonName != null) {
-                const seasonName = item.SeasonName;
-                context.querySelector('.nowPlayingSeason').innerHTML = '<a class="button-link emby-button" is="emby-linkbutton" href="#/details?id=' + item.SeasonId + `&serverId=${nowPlayingServerId}">${escapeHtml(seasonName)}</a>`;
-            }
-            if (item.SeriesName != null) {
-                const seriesName = item.SeriesName;
-                if (item.SeriesId != null) {
-                    context.querySelector('.nowPlayingSerie').innerHTML = '<a class="button-link emby-button" is="emby-linkbutton" href="#/details?id=' + item.SeriesId + `&serverId=${nowPlayingServerId}">${escapeHtml(seriesName)}</a>`;
-                } else {
-                    context.querySelector('.nowPlayingSerie').innerText = seriesName;
-                }
-            }
-            context.querySelector('.nowPlayingEpisode').innerText = item.Name;
-        } else {
-            context.querySelector('.nowPlayingPageTitle').innerHTML = displayName;
-        }
-
-        if (displayName.length > 0 && item.Type != 'Audio' && item.Type != 'Episode') {
-            context.querySelector('.nowPlayingPageTitle').classList.remove('hide');
-        } else {
-            context.querySelector('.nowPlayingPageTitle').classList.add('hide');
-        }
-
         setBackdrops([item]);
         const apiClient = ServerConnections.getApiClient(item.ServerId);
         apiClient.getItem(apiClient.getCurrentUserId(), item.Id).then(function (fullItem) {
@@ -249,6 +187,7 @@ export default function () {
         updateRepeatModeDisplay(playbackManager.getRepeatMode());
         onShuffleQueueModeChange(false);
         updateNowPlayingInfo(context, state);
+        nowPlayingInfoContainerMedia.updatePlayerState(context, state);
         nowPlayingPageImage.updatePlayerState(context, state);
         toggleContextMenuButton.updatePlayerState(context, state);
     }
@@ -739,6 +678,7 @@ export default function () {
     let remoteControlSection;
     let nowPlayingPageImage;
     let toggleContextMenuButton;
+    let nowPlayingInfoContainerMedia;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -748,6 +688,7 @@ export default function () {
         remoteControlSection = new RemoteControlSection(dlg);
         nowPlayingPageImage = new NowPlayingPageImage();
         toggleContextMenuButton = new ToggleContextMenuButton();
+        nowPlayingInfoContainerMedia = new NowPlayingInfoContainerMedia();
     };
 
     self.onShow = function () {
