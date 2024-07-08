@@ -1,5 +1,4 @@
 import datetime from '../../scripts/datetime';
-import { clearBackdrop, setBackdrops } from '../backdrop/backdrop';
 import listView from '../listview/listview';
 import imageLoader from '../images/imageLoader';
 import { playbackManager } from '../playback/playbackmanager';
@@ -21,6 +20,7 @@ import NowPlayingPageImage from './nowPlayingPageImage';
 import ToggleContextMenuButton from './toggleContextMenuButton';
 import NowPlayingInfoContainerMedia from './nowPlayingInfoContainerMedia';
 import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
+import NowPlayingPageBackdrop from './nowPlayingPageBackdrop';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -79,15 +79,6 @@ function showSubtitleMenu(context, player, button) {
             }
         });
     });
-}
-
-function updateNowPlayingInfo(context, state) {
-    const item = state.NowPlayingItem;
-    if (item) {
-        setBackdrops([item]);
-    } else {
-        clearBackdrop();
-    }
 }
 
 function buttonVisible(btn, enabled) {
@@ -178,11 +169,11 @@ export default function () {
 
         updateRepeatModeDisplay(playbackManager.getRepeatMode());
         onShuffleQueueModeChange(false);
-        updateNowPlayingInfo(context, state);
         nowPlayingInfoContainerMedia.updatePlayerState(context, state);
         nowPlayingPageImage.updatePlayerState(context, state);
         toggleContextMenuButton.updatePlayerState(context, state);
         nowPlayingPageUserDataButtons.updatePlayerState(context, state);
+        nowPlayingPageBackdrop.updatePlayerState(context, state);
     }
 
     function updateAudioTracksDisplay(player, context) {
@@ -673,6 +664,7 @@ export default function () {
     let toggleContextMenuButton;
     let nowPlayingInfoContainerMedia;
     let nowPlayingPageUserDataButtons;
+    let nowPlayingPageBackdrop;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -684,6 +676,7 @@ export default function () {
         toggleContextMenuButton = new ToggleContextMenuButton();
         nowPlayingInfoContainerMedia = new NowPlayingInfoContainerMedia();
         nowPlayingPageUserDataButtons = new NowPlayingPageUserDataButtons();
+        nowPlayingPageBackdrop = new NowPlayingPageBackdrop();
     };
 
     self.onShow = function () {
