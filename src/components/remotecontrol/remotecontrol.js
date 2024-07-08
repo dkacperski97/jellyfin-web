@@ -14,13 +14,13 @@ import '../../elements/emby-itemscontainer/emby-itemscontainer';
 import './remotecontrol.scss';
 import '../../elements/emby-ratingbutton/emby-ratingbutton';
 import '../../elements/emby-slider/emby-slider';
-import ServerConnections from '../ServerConnections';
 import { appRouter } from '../router/appRouter';
 import VolumeControl from './volumeControl';
 import RemoteControlSection from './remoteControlSection';
 import NowPlayingPageImage from './nowPlayingPageImage';
 import ToggleContextMenuButton from './toggleContextMenuButton';
 import NowPlayingInfoContainerMedia from './nowPlayingInfoContainerMedia';
+import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -85,16 +85,8 @@ function updateNowPlayingInfo(context, state) {
     const item = state.NowPlayingItem;
     if (item) {
         setBackdrops([item]);
-        const apiClient = ServerConnections.getApiClient(item.ServerId);
-        apiClient.getItem(apiClient.getCurrentUserId(), item.Id).then(function (fullItem) {
-            const userData = fullItem.UserData || {};
-            const likes = userData.Likes == null ? '' : userData.Likes;
-            context.querySelector('.nowPlayingPageUserDataButtonsTitle').innerHTML = '<button is="emby-ratingbutton" type="button" class="paper-icon-button-light" data-id="' + fullItem.Id + '" data-serverid="' + fullItem.ServerId + '" data-itemtype="' + fullItem.Type + '" data-likes="' + likes + '" data-isfavorite="' + userData.IsFavorite + '"><span class="material-icons favorite" aria-hidden="true"></span></button>';
-            context.querySelector('.nowPlayingPageUserDataButtons').innerHTML = '<button is="emby-ratingbutton" type="button" class="paper-icon-button-light" data-id="' + fullItem.Id + '" data-serverid="' + fullItem.ServerId + '" data-itemtype="' + fullItem.Type + '" data-likes="' + likes + '" data-isfavorite="' + userData.IsFavorite + '"><span class="material-icons favorite" aria-hidden="true"></span></button>';
-        });
     } else {
         clearBackdrop();
-        context.querySelector('.nowPlayingPageUserDataButtons').innerHTML = '';
     }
 }
 
@@ -190,6 +182,7 @@ export default function () {
         nowPlayingInfoContainerMedia.updatePlayerState(context, state);
         nowPlayingPageImage.updatePlayerState(context, state);
         toggleContextMenuButton.updatePlayerState(context, state);
+        nowPlayingPageUserDataButtons.updatePlayerState(context, state);
     }
 
     function updateAudioTracksDisplay(player, context) {
@@ -679,6 +672,7 @@ export default function () {
     let nowPlayingPageImage;
     let toggleContextMenuButton;
     let nowPlayingInfoContainerMedia;
+    let nowPlayingPageUserDataButtons;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -689,6 +683,7 @@ export default function () {
         nowPlayingPageImage = new NowPlayingPageImage();
         toggleContextMenuButton = new ToggleContextMenuButton();
         nowPlayingInfoContainerMedia = new NowPlayingInfoContainerMedia();
+        nowPlayingPageUserDataButtons = new NowPlayingPageUserDataButtons();
     };
 
     self.onShow = function () {
