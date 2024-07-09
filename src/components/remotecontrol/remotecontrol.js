@@ -21,65 +21,8 @@ import ToggleContextMenuButton from './toggleContextMenuButton';
 import NowPlayingInfoContainerMedia from './nowPlayingInfoContainerMedia';
 import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
 import NowPlayingPageBackdrop from './nowPlayingPageBackdrop';
-
-function showAudioMenu(context, player, button) {
-    const currentIndex = playbackManager.getAudioStreamIndex(player);
-    const streams = playbackManager.audioTracks(player);
-    const menuItems = streams.map(function (s) {
-        const menuItem = {
-            name: s.DisplayTitle,
-            id: s.Index
-        };
-
-        if (s.Index == currentIndex) {
-            menuItem.selected = true;
-        }
-
-        return menuItem;
-    });
-
-    import('../actionSheet/actionSheet').then((actionsheet) => {
-        actionsheet.show({
-            items: menuItems,
-            positionTo: button,
-            callback: function (id) {
-                playbackManager.setAudioStreamIndex(parseInt(id, 10), player);
-            }
-        });
-    });
-}
-
-function showSubtitleMenu(context, player, button) {
-    const currentIndex = playbackManager.getSubtitleStreamIndex(player);
-    const streams = playbackManager.subtitleTracks(player);
-    const menuItems = streams.map(function (s) {
-        const menuItem = {
-            name: s.DisplayTitle,
-            id: s.Index
-        };
-
-        if (s.Index == currentIndex) {
-            menuItem.selected = true;
-        }
-
-        return menuItem;
-    });
-    menuItems.unshift({
-        id: -1,
-        name: globalize.translate('Off'),
-        selected: currentIndex == null
-    });
-
-    import('../actionSheet/actionSheet').then((actionsheet) => {
-        actionsheet.show({
-            items: menuItems,
-            positionTo: button,
-            callback: function (id) {
-                playbackManager.setSubtitleStreamIndex(parseInt(id, 10), player);
-            }
-        });
-    });
-}
+import AudioTracksButton from './audioTracksButton';
+import SubtitlesButton from './subtitlesButton';
 
 function buttonVisible(btn, enabled) {
     if (enabled) {
@@ -117,11 +60,10 @@ export default function () {
         const item = state.NowPlayingItem;
         const playerInfo = playbackManager.getPlayerInfo();
         const supportedCommands = playerInfo.supportedCommands;
-        currentPlayerSupportedCommands = supportedCommands;
         const playState = state.PlayState || {};
         buttonVisible(context.querySelector('.btnToggleFullscreen'), item && item.MediaType == 'Video' && supportedCommands.includes('ToggleFullscreen'));
-        updateAudioTracksDisplay(player, context);
-        updateSubtitleTracksDisplay(player, context);
+        audioTracksButton.updatePlayerState(player, context, state);
+        subtitlesButton.updatePlayerState(player, context, state);
 
         remoteControlSection.updatePlayerState(context, supportedCommands, currentPlayer);
 
@@ -174,16 +116,6 @@ export default function () {
         toggleContextMenuButton.updatePlayerState(context, state);
         nowPlayingPageUserDataButtons.updatePlayerState(context, state);
         nowPlayingPageBackdrop.updatePlayerState(context, state);
-    }
-
-    function updateAudioTracksDisplay(player, context) {
-        const supportedCommands = currentPlayerSupportedCommands;
-        buttonVisible(context.querySelector('.btnAudioTracks'), playbackManager.audioTracks(player).length > 1 && supportedCommands.indexOf('SetAudioStreamIndex') != -1);
-    }
-
-    function updateSubtitleTracksDisplay(player, context) {
-        const supportedCommands = currentPlayerSupportedCommands;
-        buttonVisible(context.querySelector('.btnSubtitles'), playbackManager.subtitleTracks(player).length && supportedCommands.indexOf('SetSubtitleStreamIndex') != -1);
     }
 
     function updateRepeatModeDisplay(repeatMode) {
@@ -428,7 +360,6 @@ export default function () {
             Events.on(player, 'timeupdate', onTimeUpdate);
             const playerInfo = playbackManager.getPlayerInfo();
             const supportedCommands = playerInfo.supportedCommands;
-            currentPlayerSupportedCommands = supportedCommands;
             updateSupportedCommands(context, supportedCommands);
         }
     }
@@ -478,16 +409,6 @@ export default function () {
         context.querySelector('.btnToggleFullscreen').addEventListener('click', function () {
             if (currentPlayer) {
                 playbackManager.toggleFullscreen(currentPlayer);
-            }
-        });
-        context.querySelector('.btnAudioTracks').addEventListener('click', function (e) {
-            if (currentPlayer && lastPlayerState && lastPlayerState.NowPlayingItem) {
-                showAudioMenu(context, currentPlayer, e.target);
-            }
-        });
-        context.querySelector('.btnSubtitles').addEventListener('click', function (e) {
-            if (currentPlayer && lastPlayerState && lastPlayerState.NowPlayingItem) {
-                showSubtitleMenu(context, currentPlayer, e.target);
             }
         });
         context.querySelector('.btnStop').addEventListener('click', function () {
@@ -612,6 +533,8 @@ export default function () {
         bindToPlayer(dlg, player);
         volumeControl.onPlayerChange(player);
         remoteControlSection.onPlayerChange(player);
+        audioTracksButton.onPlayerChange(player);
+        subtitlesButton.onPlayerChange(player);
     }
 
     function init(ownerView, context) {
@@ -655,7 +578,6 @@ export default function () {
     let dlg;
     let currentPlayer;
     let lastPlayerState;
-    let currentPlayerSupportedCommands = [];
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
     let volumeControl;
@@ -665,6 +587,8 @@ export default function () {
     let nowPlayingInfoContainerMedia;
     let nowPlayingPageUserDataButtons;
     let nowPlayingPageBackdrop;
+    let audioTracksButton;
+    let subtitlesButton;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -677,18 +601,24 @@ export default function () {
         nowPlayingInfoContainerMedia = new NowPlayingInfoContainerMedia();
         nowPlayingPageUserDataButtons = new NowPlayingPageUserDataButtons();
         nowPlayingPageBackdrop = new NowPlayingPageBackdrop();
+        audioTracksButton = new AudioTracksButton(dlg);
+        subtitlesButton = new SubtitlesButton(dlg);
     };
 
     self.onShow = function () {
         const player = playbackManager.getCurrentPlayer();
         volumeControl.onShow(player);
         remoteControlSection.onShow(player);
+        audioTracksButton.onShow(player);
+        subtitlesButton.onShow(player);
         onShow(dlg, player);
     };
 
     self.destroy = function () {
         volumeControl.destroy();
         remoteControlSection.destroy();
+        audioTracksButton.destroy();
+        subtitlesButton.destroy();
         onDialogClosed();
     };
 }
