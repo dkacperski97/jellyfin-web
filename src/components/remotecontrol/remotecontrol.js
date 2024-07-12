@@ -23,6 +23,7 @@ import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
 import NowPlayingPageBackdrop from './nowPlayingPageBackdrop';
 import AudioTracksButton from './audioTracksButton';
 import SubtitlesButton from './subtitlesButton';
+import RepeatToggleButton from './repeatToggleButton';
 
 function buttonVisible(btn, enabled) {
     if (enabled) {
@@ -32,29 +33,7 @@ function buttonVisible(btn, enabled) {
     }
 }
 
-function updateSupportedCommands(context, commands) {
-    const all = context.querySelectorAll('.repeatToggleButton');
-
-    for (let i = 0, length = all.length; i < length; i++) {
-        const enableButton = commands.indexOf(all[i].getAttribute('data-command')) !== -1;
-        all[i].disabled = !enableButton;
-    }
-}
-
 export default function () {
-    function toggleRepeat() {
-        switch (playbackManager.getRepeatMode()) {
-            case 'RepeatAll':
-                playbackManager.setRepeatMode('RepeatOne');
-                break;
-            case 'RepeatOne':
-                playbackManager.setRepeatMode('RepeatNone');
-                break;
-            case 'RepeatNone':
-                playbackManager.setRepeatMode('RepeatAll');
-        }
-    }
-
     function updatePlayerState(player, context, state) {
         lastPlayerState = state;
         const item = state.NowPlayingItem;
@@ -109,38 +88,13 @@ export default function () {
             context.classList.add('hideVideoButtons');
         }
 
-        updateRepeatModeDisplay(playbackManager.getRepeatMode());
+        repeatToggleButton.updatePlayerState();
         onShuffleQueueModeChange(false);
         nowPlayingInfoContainerMedia.updatePlayerState(context, state);
         nowPlayingPageImage.updatePlayerState(context, state);
         toggleContextMenuButton.updatePlayerState(context, state);
         nowPlayingPageUserDataButtons.updatePlayerState(context, state);
         nowPlayingPageBackdrop.updatePlayerState(context, state);
-    }
-
-    function updateRepeatModeDisplay(repeatMode) {
-        const context = dlg;
-        const toggleRepeatButtons = context.querySelectorAll('.repeatToggleButton');
-        const cssClass = 'buttonActive';
-        let innHtml = '<span class="material-icons repeat" aria-hidden="true"></span>';
-        let repeatOn = true;
-
-        switch (repeatMode) {
-            case 'RepeatAll':
-                break;
-            case 'RepeatOne':
-                innHtml = '<span class="material-icons repeat_one" aria-hidden="true"></span>';
-                break;
-            case 'RepeatNone':
-            default:
-                repeatOn = false;
-                break;
-        }
-
-        for (const toggleRepeatButton of toggleRepeatButtons) {
-            toggleRepeatButton.classList.toggle(cssClass, repeatOn);
-            toggleRepeatButton.innerHTML = innHtml;
-        }
     }
 
     function updatePlayPauseState(isPaused, isActive) {
@@ -240,10 +194,6 @@ export default function () {
         onStateChanged.call(player, e, state);
     }
 
-    function onRepeatModeChange() {
-        updateRepeatModeDisplay(playbackManager.getRepeatMode());
-    }
-
     function onShuffleQueueModeChange(updateView = true) {
         const shuffleMode = playbackManager.getQueueShuffleMode(this);
         const context = dlg;
@@ -325,7 +275,6 @@ export default function () {
         if (player) {
             Events.off(player, 'playbackstart', onPlaybackStart);
             Events.off(player, 'statechange', onStateChanged);
-            Events.off(player, 'repeatmodechange', onRepeatModeChange);
             Events.off(player, 'shufflequeuemodechange', onShuffleQueueModeChange);
             Events.off(player, 'playlistitemremove', onPlaylistItemRemoved);
             Events.off(player, 'playlistitemmove', onPlaylistUpdate);
@@ -349,7 +298,6 @@ export default function () {
             }, state);
             Events.on(player, 'playbackstart', onPlaybackStart);
             Events.on(player, 'statechange', onStateChanged);
-            Events.on(player, 'repeatmodechange', onRepeatModeChange);
             Events.on(player, 'shufflequeuemodechange', onShuffleQueueModeChange);
             Events.on(player, 'playlistitemremove', onPlaylistItemRemoved);
             Events.on(player, 'playlistitemmove', onPlaylistUpdate);
@@ -358,14 +306,6 @@ export default function () {
             Events.on(player, 'pause', onPlayPauseStateChanged);
             Events.on(player, 'unpause', onPlayPauseStateChanged);
             Events.on(player, 'timeupdate', onTimeUpdate);
-            const playerInfo = playbackManager.getPlayerInfo();
-            const supportedCommands = playerInfo.supportedCommands;
-            updateSupportedCommands(context, supportedCommands);
-        }
-    }
-    function onRepeatToggleButtonClick() {
-        if (currentPlayer) {
-            toggleRepeat();
         }
     }
 
@@ -399,11 +339,6 @@ export default function () {
     }
 
     function bindEvents(context) {
-        const repeatToggleButtons = context.querySelectorAll('.repeatToggleButton');
-        for (let i = 0, length = repeatToggleButtons.length; i < length; i++) {
-            repeatToggleButtons[i].addEventListener('click', onRepeatToggleButtonClick);
-        }
-
         const positionSlider = context.querySelector('.nowPlayingPositionSlider');
 
         context.querySelector('.btnToggleFullscreen').addEventListener('click', function () {
@@ -535,6 +470,7 @@ export default function () {
         remoteControlSection.onPlayerChange(player);
         audioTracksButton.onPlayerChange(player);
         subtitlesButton.onPlayerChange(player);
+        repeatToggleButton.onPlayerChange(player);
     }
 
     function init(ownerView, context) {
@@ -589,6 +525,7 @@ export default function () {
     let nowPlayingPageBackdrop;
     let audioTracksButton;
     let subtitlesButton;
+    let repeatToggleButton;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -603,6 +540,7 @@ export default function () {
         nowPlayingPageBackdrop = new NowPlayingPageBackdrop();
         audioTracksButton = new AudioTracksButton(dlg);
         subtitlesButton = new SubtitlesButton(dlg);
+        repeatToggleButton = new RepeatToggleButton(dlg);
     };
 
     self.onShow = function () {
@@ -611,6 +549,7 @@ export default function () {
         remoteControlSection.onShow(player);
         audioTracksButton.onShow(player);
         subtitlesButton.onShow(player);
+        repeatToggleButton.onShow(player);
         onShow(dlg, player);
     };
 
@@ -619,6 +558,7 @@ export default function () {
         remoteControlSection.destroy();
         audioTracksButton.destroy();
         subtitlesButton.destroy();
+        repeatToggleButton.destroy();
         onDialogClosed();
     };
 }
