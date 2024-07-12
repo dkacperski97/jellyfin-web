@@ -19,11 +19,9 @@ import RemoteControlSection from './remoteControlSection';
 import NowPlayingPageImage from './nowPlayingPageImage';
 import ToggleContextMenuButton from './toggleContextMenuButton';
 import NowPlayingInfoContainerMedia from './nowPlayingInfoContainerMedia';
-import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
 import NowPlayingPageBackdrop from './nowPlayingPageBackdrop';
-import AudioTracksButton from './audioTracksButton';
-import SubtitlesButton from './subtitlesButton';
-import RepeatToggleButton from './repeatToggleButton';
+import NowPlayingInfoButtons from './nowPlayingInfoButtons';
+import NowPlayingSecondaryButtons from './nowPlayingSecondaryButtons';
 
 function buttonVisible(btn, enabled) {
     if (enabled) {
@@ -41,8 +39,6 @@ export default function () {
         const supportedCommands = playerInfo.supportedCommands;
         const playState = state.PlayState || {};
         buttonVisible(context.querySelector('.btnToggleFullscreen'), item && item.MediaType == 'Video' && supportedCommands.includes('ToggleFullscreen'));
-        audioTracksButton.updatePlayerState(player, context, state);
-        subtitlesButton.updatePlayerState(player, context, state);
 
         remoteControlSection.updatePlayerState(context, supportedCommands, currentPlayer);
 
@@ -54,12 +50,10 @@ export default function () {
             const playingVideo = playbackManager.isPlayingVideo() && item !== null;
             const playingAudio = !playbackManager.isPlayingVideo() && item !== null;
             const playingAudioBook = playingAudio && item.Type == 'AudioBook';
-            buttonVisible(context.querySelector('.btnRepeat'), playingAudio && !playingAudioBook);
             buttonVisible(context.querySelector('.btnShuffleQueue'), playingAudio && !playingAudioBook);
             buttonVisible(context.querySelector('.btnRewind'), playingVideo || playingAudioBook);
             buttonVisible(context.querySelector('.btnFastForward'), playingVideo || playingAudioBook);
             buttonVisible(context.querySelector('.nowPlayingSecondaryButtons .btnShuffleQueue'), playingVideo);
-            buttonVisible(context.querySelector('.nowPlayingSecondaryButtons .btnRepeat'), playingVideo);
         } else {
             buttonVisible(context.querySelector('.btnRewind'), item != null);
             buttonVisible(context.querySelector('.btnFastForward'), item != null);
@@ -88,12 +82,12 @@ export default function () {
             context.classList.add('hideVideoButtons');
         }
 
-        repeatToggleButton.updatePlayerState();
+        nowPlayingInfoButtons.updatePlayerState(state);
+        nowPlayingSecondaryButtons.updatePlayerState(player, context, state);
         onShuffleQueueModeChange(false);
         nowPlayingInfoContainerMedia.updatePlayerState(context, state);
         nowPlayingPageImage.updatePlayerState(context, state);
         toggleContextMenuButton.updatePlayerState(context, state);
-        nowPlayingPageUserDataButtons.updatePlayerState(context, state);
         nowPlayingPageBackdrop.updatePlayerState(context, state);
     }
 
@@ -468,16 +462,14 @@ export default function () {
         bindToPlayer(dlg, player);
         volumeControl.onPlayerChange(player);
         remoteControlSection.onPlayerChange(player);
-        audioTracksButton.onPlayerChange(player);
-        subtitlesButton.onPlayerChange(player);
-        repeatToggleButton.onPlayerChange(player);
+        nowPlayingInfoButtons.onPlayerChange(player);
+        nowPlayingSecondaryButtons.onPlayerChange(player);
     }
 
     function init(ownerView, context) {
         const volumecontrolHtml = VolumeControl.getHtml();
         const optionsSection = context.querySelector('.playlistSectionButton');
         if (!layoutManager.mobile) {
-            context.querySelector('.nowPlayingSecondaryButtons').insertAdjacentHTML('beforeend', volumecontrolHtml);
             optionsSection.classList.remove('align-items-center', 'justify-content-center');
             optionsSection.classList.add('align-items-right', 'justify-content-flex-end');
             context.querySelector('.playlist').classList.remove('hide');
@@ -521,11 +513,9 @@ export default function () {
     let nowPlayingPageImage;
     let toggleContextMenuButton;
     let nowPlayingInfoContainerMedia;
-    let nowPlayingPageUserDataButtons;
     let nowPlayingPageBackdrop;
-    let audioTracksButton;
-    let subtitlesButton;
-    let repeatToggleButton;
+    let nowPlayingInfoButtons;
+    let nowPlayingSecondaryButtons;
     const self = this;
 
     self.init = function (ownerView, context) {
@@ -536,29 +526,25 @@ export default function () {
         nowPlayingPageImage = new NowPlayingPageImage();
         toggleContextMenuButton = new ToggleContextMenuButton();
         nowPlayingInfoContainerMedia = new NowPlayingInfoContainerMedia();
-        nowPlayingPageUserDataButtons = new NowPlayingPageUserDataButtons();
         nowPlayingPageBackdrop = new NowPlayingPageBackdrop();
-        audioTracksButton = new AudioTracksButton(dlg);
-        subtitlesButton = new SubtitlesButton(dlg);
-        repeatToggleButton = new RepeatToggleButton(dlg);
+        nowPlayingInfoButtons = new NowPlayingInfoButtons(dlg);
+        nowPlayingSecondaryButtons = new NowPlayingSecondaryButtons(dlg);
     };
 
     self.onShow = function () {
         const player = playbackManager.getCurrentPlayer();
         volumeControl.onShow(player);
         remoteControlSection.onShow(player);
-        audioTracksButton.onShow(player);
-        subtitlesButton.onShow(player);
-        repeatToggleButton.onShow(player);
+        nowPlayingInfoButtons.onShow(player);
+        nowPlayingSecondaryButtons.onShow(player);
         onShow(dlg, player);
     };
 
     self.destroy = function () {
         volumeControl.destroy();
         remoteControlSection.destroy();
-        audioTracksButton.destroy();
-        subtitlesButton.destroy();
-        repeatToggleButton.destroy();
+        nowPlayingInfoButtons.destroy();
+        nowPlayingSecondaryButtons.destroy();
         onDialogClosed();
     };
 }

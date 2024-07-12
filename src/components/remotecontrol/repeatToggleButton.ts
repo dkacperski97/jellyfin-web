@@ -4,13 +4,11 @@ import Events from '../../utils/events';
 
 export default class RepeatToggleButton {
     currentPlayer: PlayerPlugin|null = null;
-    repeatToggleButtons: NodeListOf<HTMLButtonElement>;
+    button: HTMLButtonElement;
 
-    constructor(context: HTMLElement) {
-        this.repeatToggleButtons = context.querySelectorAll<HTMLButtonElement>('.repeatToggleButton');
-        for (const repeatToggleButton of this.repeatToggleButtons) {
-            repeatToggleButton.addEventListener('click', this.onRepeatToggleButtonClick);
-        }
+    constructor(context: HTMLButtonElement) {
+        this.button = context;
+        this.button.addEventListener('click', this.onRepeatToggleButtonClick);
     }
 
     private onRepeatToggleButtonClick() {
@@ -53,11 +51,9 @@ export default class RepeatToggleButton {
     }
 
     private updateSupportedCommands(commands: string[]) {
-        for (const repeatToggleButton of this.repeatToggleButtons) {
-            const command = repeatToggleButton.getAttribute('data-command');
-            const enableButton = command ? commands.indexOf(command) !== -1 : false;
-            repeatToggleButton.disabled = !enableButton;
-        }
+        const command = this.button.getAttribute('data-command');
+        const enableButton = command ? commands.indexOf(command) !== -1 : false;
+        this.button.disabled = !enableButton;
     }
 
     private updateRepeatModeDisplay(repeatMode: string) {
@@ -77,10 +73,8 @@ export default class RepeatToggleButton {
                 break;
         }
 
-        for (const repeatToggleButton of this.repeatToggleButtons) {
-            repeatToggleButton.classList.toggle(cssClass, repeatOn);
-            repeatToggleButton.innerHTML = innHtml;
-        }
+        this.button.classList.toggle(cssClass, repeatOn);
+        this.button.innerHTML = innHtml;
     }
 
     private releaseCurrentPlayer() {

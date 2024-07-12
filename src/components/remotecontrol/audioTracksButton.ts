@@ -4,7 +4,6 @@ import { playbackManager } from 'components/playback/playbackmanager';
 
 export default class AudioTracksButton extends VisibleButton {
     currentPlayer: PlayerPlugin|null = null;
-    currentPlayerSupportedCommands: string[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     lastPlayerState: any|null;
 
@@ -35,9 +34,8 @@ export default class AudioTracksButton extends VisibleButton {
         this.lastPlayerState = state;
         const playerInfo = playbackManager.getPlayerInfo();
         const supportedCommands = playerInfo?.supportedCommands;
-        this.currentPlayerSupportedCommands = supportedCommands || [];
 
-        this.updateAudioTracksDisplay(player, context);
+        this.buttonVisible(context.querySelector('.btnAudioTracks'), playbackManager.audioTracks(player).length > 1 && supportedCommands.indexOf('SetAudioStreamIndex') != -1);
     }
 
     private showAudioMenu(context: HTMLElement, player: PlayerPlugin|null, button: HTMLButtonElement) {
@@ -61,11 +59,6 @@ export default class AudioTracksButton extends VisibleButton {
         });
     }
 
-    private updateAudioTracksDisplay(player: PlayerPlugin|null, context: HTMLElement) {
-        const supportedCommands = this.currentPlayerSupportedCommands;
-        this.buttonVisible(context.querySelector('.btnAudioTracks'), playbackManager.audioTracks(player).length > 1 && supportedCommands.indexOf('SetAudioStreamIndex') != -1);
-    }
-
     private releaseCurrentPlayer() {
         const player = this.currentPlayer;
 
@@ -77,11 +70,5 @@ export default class AudioTracksButton extends VisibleButton {
     private bindToPlayer(player: PlayerPlugin|null) {
         this.releaseCurrentPlayer();
         this.currentPlayer = player;
-
-        if (player) {
-            const playerInfo = playbackManager.getPlayerInfo();
-            const supportedCommands = playerInfo?.supportedCommands;
-            this.currentPlayerSupportedCommands = supportedCommands || [];
-        }
     }
 }

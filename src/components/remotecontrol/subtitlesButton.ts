@@ -5,7 +5,6 @@ import globalize from 'scripts/globalize';
 
 export default class SubtitlesButton extends VisibleButton {
     currentPlayer: PlayerPlugin|null = null;
-    currentPlayerSupportedCommands: string[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     lastPlayerState: any|null;
 
@@ -36,9 +35,8 @@ export default class SubtitlesButton extends VisibleButton {
         this.lastPlayerState = state;
         const playerInfo = playbackManager.getPlayerInfo();
         const supportedCommands = playerInfo?.supportedCommands;
-        this.currentPlayerSupportedCommands = supportedCommands || [];
 
-        this.updateSubtitleTracksDisplay(player, context);
+        this.buttonVisible(context.querySelector('.btnSubtitles'), playbackManager.subtitleTracks(player).length && supportedCommands.indexOf('SetSubtitleStreamIndex') != -1);
     }
 
     private showSubtitleMenu(context: HTMLElement, player: PlayerPlugin|null, button: HTMLButtonElement) {
@@ -67,11 +65,6 @@ export default class SubtitlesButton extends VisibleButton {
         });
     }
 
-    private updateSubtitleTracksDisplay(player: PlayerPlugin|null, context: HTMLElement) {
-        const supportedCommands = this.currentPlayerSupportedCommands;
-        this.buttonVisible(context.querySelector('.btnSubtitles'), playbackManager.subtitleTracks(player).length && supportedCommands.indexOf('SetSubtitleStreamIndex') != -1);
-    }
-
     private releaseCurrentPlayer() {
         const player = this.currentPlayer;
 
@@ -83,11 +76,5 @@ export default class SubtitlesButton extends VisibleButton {
     private bindToPlayer(player: PlayerPlugin|null) {
         this.releaseCurrentPlayer();
         this.currentPlayer = player;
-
-        if (player) {
-            const playerInfo = playbackManager.getPlayerInfo();
-            const supportedCommands = playerInfo?.supportedCommands;
-            this.currentPlayerSupportedCommands = supportedCommands || [];
-        }
     }
 }
