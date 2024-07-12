@@ -9,13 +9,14 @@ import AudioTracksButton from './audioTracksButton';
 import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
 import { appRouter } from '../router/appRouter';
 import ToggleFullscreenButton from './toggleFullscreenButton';
+import ShuffleQueueButton from './shuffleQueueButton';
 
 export default class NowPlayingSecondaryButtons {
     audioTracksButton: AudioTracksButton;
     subtitlesButton: SubtitlesButton;
     nowPlayingPageUserDataButtons: NowPlayingPageUserDataButtons;
     toggleFullscreenButton: ToggleFullscreenButton;
-    // videoShuffleQueueButton: ShuffleQueueButton;
+    videoShuffleQueueButton?: ShuffleQueueButton;
     videoRepeatToggleButton?: RepeatToggleButton;
 
     constructor(context: HTMLElement) {
@@ -23,6 +24,10 @@ export default class NowPlayingSecondaryButtons {
         this.audioTracksButton = new AudioTracksButton(context);
         this.subtitlesButton = new SubtitlesButton(context);
         this.toggleFullscreenButton = new ToggleFullscreenButton(context);
+        const videoShuffleQueueButtonContext = context.querySelector<HTMLButtonElement>('.nowPlayingSecondaryButtons .btnShuffleQueue');
+        if (videoShuffleQueueButtonContext) {
+            this.videoShuffleQueueButton = new ShuffleQueueButton(videoShuffleQueueButtonContext);
+        }
         const videoRepeatToggleButtonContext = context.querySelector<HTMLButtonElement>('.nowPlayingSecondaryButtons .btnRepeat');
         if (videoRepeatToggleButtonContext) {
             this.videoRepeatToggleButton = new RepeatToggleButton(videoRepeatToggleButtonContext);
@@ -48,10 +53,11 @@ export default class NowPlayingSecondaryButtons {
         RemoteControlHelper.buttonVisible(context.querySelector<HTMLButtonElement>('.btnLyrics'), item?.Type === 'Audio' && !layoutManager.mobile);
         if (layoutManager.mobile) {
             const playingVideo = playbackManager.isPlayingVideo() && item !== null;
-            // RemoteControlHelper.buttonVisible(context.querySelector('.nowPlayingSecondaryButtons .btnShuffleQueue'), playingVideo);
+            RemoteControlHelper.buttonVisible(this.videoShuffleQueueButton?.button, playingVideo);
             RemoteControlHelper.buttonVisible(this.videoRepeatToggleButton?.button, playingVideo);
         }
 
+        this.videoShuffleQueueButton?.updatePlayerState();
         this.videoRepeatToggleButton?.updatePlayerState();
         this.nowPlayingPageUserDataButtons.updatePlayerState(context, state);
     }
@@ -60,6 +66,7 @@ export default class NowPlayingSecondaryButtons {
         this.toggleFullscreenButton.onPlayerChange(player);
         this.audioTracksButton.onPlayerChange(player);
         this.subtitlesButton.onPlayerChange(player);
+        this.videoShuffleQueueButton?.onPlayerChange(player);
         this.videoRepeatToggleButton?.onPlayerChange(player);
     }
 
@@ -67,6 +74,7 @@ export default class NowPlayingSecondaryButtons {
         this.toggleFullscreenButton.onShow(player);
         this.audioTracksButton.onShow(player);
         this.subtitlesButton.onShow(player);
+        this.videoShuffleQueueButton?.onShow(player);
         this.videoRepeatToggleButton?.onShow(player);
     }
 
@@ -74,6 +82,7 @@ export default class NowPlayingSecondaryButtons {
         this.toggleFullscreenButton.destroy();
         this.audioTracksButton.destroy();
         this.subtitlesButton.destroy();
+        this.videoShuffleQueueButton?.destroy();
         this.videoRepeatToggleButton?.destroy();
     }
 }

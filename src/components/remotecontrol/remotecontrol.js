@@ -48,10 +48,8 @@ export default function () {
             const playingVideo = playbackManager.isPlayingVideo() && item !== null;
             const playingAudio = !playbackManager.isPlayingVideo() && item !== null;
             const playingAudioBook = playingAudio && item.Type == 'AudioBook';
-            buttonVisible(context.querySelector('.btnShuffleQueue'), playingAudio && !playingAudioBook);
             buttonVisible(context.querySelector('.btnRewind'), playingVideo || playingAudioBook);
             buttonVisible(context.querySelector('.btnFastForward'), playingVideo || playingAudioBook);
-            buttonVisible(context.querySelector('.nowPlayingSecondaryButtons .btnShuffleQueue'), playingVideo);
         } else {
             buttonVisible(context.querySelector('.btnRewind'), item != null);
             buttonVisible(context.querySelector('.btnFastForward'), item != null);
@@ -187,23 +185,6 @@ export default function () {
     }
 
     function onShuffleQueueModeChange(updateView = true) {
-        const shuffleMode = playbackManager.getQueueShuffleMode(this);
-        const context = dlg;
-        const cssClass = 'buttonActive';
-        const shuffleButtons = context.querySelectorAll('.btnShuffleQueue');
-
-        for (const shuffleButton of shuffleButtons) {
-            switch (shuffleMode) {
-                case 'Shuffle':
-                    shuffleButton.classList.add(cssClass);
-                    break;
-                case 'Sorted':
-                default:
-                    shuffleButton.classList.remove(cssClass);
-                    break;
-            }
-        }
-
         if (updateView) {
             onPlaylistUpdate();
         }
@@ -359,14 +340,6 @@ export default function () {
             }
         });
 
-        for (const shuffleButton of context.querySelectorAll('.btnShuffleQueue')) {
-            shuffleButton.addEventListener('click', function () {
-                if (currentPlayer) {
-                    playbackManager.toggleQueueShuffleMode(currentPlayer);
-                }
-            });
-        }
-
         context.querySelector('.btnPreviousTrack').addEventListener('click', function (e) {
             if (currentPlayer) {
                 if (playbackManager.isPlayingAudio(currentPlayer)) {
@@ -498,6 +471,7 @@ export default function () {
     let lastPlayerState;
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
+
     let volumeControl;
     let remoteControlSection;
     let nowPlayingPageImage;
@@ -506,6 +480,7 @@ export default function () {
     let nowPlayingPageBackdrop;
     let nowPlayingInfoButtons;
     let nowPlayingSecondaryButtons;
+
     const self = this;
 
     self.init = function (ownerView, context) {

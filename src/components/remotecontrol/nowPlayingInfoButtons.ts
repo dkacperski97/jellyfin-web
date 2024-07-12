@@ -3,21 +3,26 @@ import { playbackManager } from 'components/playback/playbackmanager';
 import RepeatToggleButton from './repeatToggleButton';
 import RemoteControlHelper from './remoteControlHelper';
 import { PlayerPlugin } from 'types/player';
+import ShuffleQueueButton from './shuffleQueueButton';
 
 export default class NowPlayingInfoButtons {
-    musicRepeatToggleButton?: RepeatToggleButton;
+    audioRepeatToggleButton?: RepeatToggleButton;
     // rewindButton: RewindButton;
     // previousTrackButton: PreviousTrackButton;
     // playPauseButton: PlayPauseButton;
     // stopButton: StopButton;
     // nextTrackButton: NextTrackButton;
     // fastForwardButton: FastForwardButton;
-    // shuffleQueueButton: ShuffleQueueButton;
+    audioShuffleQueueButton?: ShuffleQueueButton;
 
     constructor(context: HTMLElement) {
+        const audioShuffleQueueButtonContext = context.querySelector<HTMLButtonElement>('.btnShuffleQueue');
+        if (audioShuffleQueueButtonContext) {
+            this.audioShuffleQueueButton = new ShuffleQueueButton(audioShuffleQueueButtonContext);
+        }
         const audioRepeatToggleButtonContext = context.querySelector<HTMLButtonElement>('.btnRepeat');
         if (audioRepeatToggleButtonContext) {
-            this.musicRepeatToggleButton = new RepeatToggleButton(audioRepeatToggleButtonContext);
+            this.audioRepeatToggleButton = new RepeatToggleButton(audioRepeatToggleButtonContext);
         }
     }
 
@@ -27,21 +32,26 @@ export default class NowPlayingInfoButtons {
         if (layoutManager.mobile) {
             const playingAudio = !playbackManager.isPlayingVideo() && item !== null;
             const playingAudioBook = playingAudio && item.Type == 'AudioBook';
-            RemoteControlHelper.buttonVisible(this.musicRepeatToggleButton?.button, playingAudio && !playingAudioBook);
+            RemoteControlHelper.buttonVisible(this.audioShuffleQueueButton?.button, playingAudio && !playingAudioBook);
+            RemoteControlHelper.buttonVisible(this.audioRepeatToggleButton?.button, playingAudio && !playingAudioBook);
         }
 
-        this.musicRepeatToggleButton?.updatePlayerState();
+        this.audioShuffleQueueButton?.updatePlayerState();
+        this.audioRepeatToggleButton?.updatePlayerState();
     }
 
     onPlayerChange(player: PlayerPlugin|null) {
-        this.musicRepeatToggleButton?.onPlayerChange(player);
+        this.audioShuffleQueueButton?.onPlayerChange(player);
+        this.audioRepeatToggleButton?.onPlayerChange(player);
     }
 
     onShow(player: PlayerPlugin|null) {
-        this.musicRepeatToggleButton?.onShow(player);
+        this.audioShuffleQueueButton?.onShow(player);
+        this.audioRepeatToggleButton?.onShow(player);
     }
 
     destroy() {
-        this.musicRepeatToggleButton?.destroy();
+        this.audioShuffleQueueButton?.destroy();
+        this.audioRepeatToggleButton?.destroy();
     }
 }
