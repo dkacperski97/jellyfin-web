@@ -38,11 +38,9 @@ export default function () {
         const playerInfo = playbackManager.getPlayerInfo();
         const supportedCommands = playerInfo.supportedCommands;
         const playState = state.PlayState || {};
-        buttonVisible(context.querySelector('.btnToggleFullscreen'), item && item.MediaType == 'Video' && supportedCommands.includes('ToggleFullscreen'));
 
         remoteControlSection.updatePlayerState(context, supportedCommands, currentPlayer);
 
-        buttonVisible(context.querySelector('.btnLyrics'), item?.Type === 'Audio' && !layoutManager.mobile);
         buttonVisible(context.querySelector('.btnStop'), item != null);
         buttonVisible(context.querySelector('.btnNextTrack'), item != null);
         buttonVisible(context.querySelector('.btnPreviousTrack'), item != null);
@@ -335,11 +333,6 @@ export default function () {
     function bindEvents(context) {
         const positionSlider = context.querySelector('.nowPlayingPositionSlider');
 
-        context.querySelector('.btnToggleFullscreen').addEventListener('click', function () {
-            if (currentPlayer) {
-                playbackManager.toggleFullscreen(currentPlayer);
-            }
-        });
         context.querySelector('.btnStop').addEventListener('click', function () {
             if (currentPlayer) {
                 playbackManager.stop(currentPlayer);
@@ -364,9 +357,6 @@ export default function () {
             if (currentPlayer) {
                 playbackManager.fastForward(currentPlayer);
             }
-        });
-        context.querySelector('.btnLyrics').addEventListener('click', function () {
-            appRouter.show('lyrics');
         });
 
         for (const shuffleButton of context.querySelectorAll('.btnShuffleQueue')) {

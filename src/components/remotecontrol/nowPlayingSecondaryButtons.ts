@@ -7,13 +7,14 @@ import { PlayerPlugin } from 'types/player';
 import SubtitlesButton from './subtitlesButton';
 import AudioTracksButton from './audioTracksButton';
 import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
+import { appRouter } from '../router/appRouter';
+import ToggleFullscreenButton from './toggleFullscreenButton';
 
 export default class NowPlayingSecondaryButtons {
     audioTracksButton: AudioTracksButton;
     subtitlesButton: SubtitlesButton;
     nowPlayingPageUserDataButtons: NowPlayingPageUserDataButtons;
-    // toggleFullscreenButton: ToggleFullscreenButton;
-    // lyricsButton: LyricsButton;
+    toggleFullscreenButton: ToggleFullscreenButton;
     // videoShuffleQueueButton: ShuffleQueueButton;
     videoRepeatToggleButton?: RepeatToggleButton;
 
@@ -21,6 +22,7 @@ export default class NowPlayingSecondaryButtons {
         this.nowPlayingPageUserDataButtons = new NowPlayingPageUserDataButtons();
         this.audioTracksButton = new AudioTracksButton(context);
         this.subtitlesButton = new SubtitlesButton(context);
+        this.toggleFullscreenButton = new ToggleFullscreenButton(context);
         const videoRepeatToggleButtonContext = context.querySelector<HTMLButtonElement>('.nowPlayingSecondaryButtons .btnRepeat');
         if (videoRepeatToggleButtonContext) {
             this.videoRepeatToggleButton = new RepeatToggleButton(videoRepeatToggleButtonContext);
@@ -30,6 +32,10 @@ export default class NowPlayingSecondaryButtons {
         if (!layoutManager.mobile) {
             context.querySelector('.nowPlayingSecondaryButtons')?.insertAdjacentHTML('beforeend', volumeControlHtml);
         }
+
+        context.querySelector('.btnLyrics')?.addEventListener('click', function () {
+            void appRouter.show('lyrics');
+        });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,10 +43,9 @@ export default class NowPlayingSecondaryButtons {
         const item = state.NowPlayingItem;
         this.audioTracksButton.updatePlayerState(player, context, state);
         this.subtitlesButton.updatePlayerState(player, context, state);
-        // const playerInfo = playbackManager.getPlayerInfo();
-        // const supportedCommands = playerInfo?.supportedCommands;
-        // RemoteControlHelper.buttonVisible(context.querySelector('.btnToggleFullscreen'), item && item.MediaType == 'Video' && supportedCommands.includes('ToggleFullscreen'));
-        // RemoteControlHelper.buttonVisible(context.querySelector('.btnLyrics'), item?.Type === 'Audio' && !layoutManager.mobile);
+        this.toggleFullscreenButton.updatePlayerState(context, state);
+
+        RemoteControlHelper.buttonVisible(context.querySelector<HTMLButtonElement>('.btnLyrics'), item?.Type === 'Audio' && !layoutManager.mobile);
         if (layoutManager.mobile) {
             const playingVideo = playbackManager.isPlayingVideo() && item !== null;
             // RemoteControlHelper.buttonVisible(context.querySelector('.nowPlayingSecondaryButtons .btnShuffleQueue'), playingVideo);
@@ -52,18 +57,21 @@ export default class NowPlayingSecondaryButtons {
     }
 
     onPlayerChange(player: PlayerPlugin|null) {
+        this.toggleFullscreenButton.onPlayerChange(player);
         this.audioTracksButton.onPlayerChange(player);
         this.subtitlesButton.onPlayerChange(player);
         this.videoRepeatToggleButton?.onPlayerChange(player);
     }
 
     onShow(player: PlayerPlugin|null) {
+        this.toggleFullscreenButton.onShow(player);
         this.audioTracksButton.onShow(player);
         this.subtitlesButton.onShow(player);
         this.videoRepeatToggleButton?.onShow(player);
     }
 
     destroy() {
+        this.toggleFullscreenButton.destroy();
         this.audioTracksButton.destroy();
         this.subtitlesButton.destroy();
         this.videoRepeatToggleButton?.destroy();
