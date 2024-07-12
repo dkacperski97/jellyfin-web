@@ -67,7 +67,7 @@ export default function () {
             positionSlider.setIsClear(isProgressClear);
         }
 
-        updatePlayPauseState(playState.IsPaused, item != null);
+        updatePlayPauseState(playState.IsPaused);
         updateTimeDisplay(playState.PositionTicks, item ? item.RunTimeTicks : null);
 
         volumeControl.updatePlayerState(context, state);
@@ -87,20 +87,12 @@ export default function () {
         nowPlayingPageBackdrop.updatePlayerState(context, state);
     }
 
-    function updatePlayPauseState(isPaused, isActive) {
+    function updatePlayPauseState(isPaused) {
         const context = dlg;
-        const btnPlayPause = context.querySelector('.btnPlayPause');
-        const btnPlayPauseIcon = btnPlayPause.querySelector('.material-icons');
-
-        btnPlayPauseIcon.classList.remove('play_circle_filled', 'pause_circle_filled');
-        btnPlayPauseIcon.classList.add(isPaused ? 'play_circle_filled' : 'pause_circle_filled');
-
         const playlistIndicator = context.querySelector('.playlistIndexIndicatorImage');
         if (playlistIndicator) {
             playlistIndicator.classList.toggle('playlistIndexIndicatorPausedImage', isPaused);
         }
-
-        buttonVisible(btnPlayPause, isActive);
     }
 
     function updateTimeDisplay(positionTicks, runtimeTicks) {
@@ -222,7 +214,7 @@ export default function () {
     }
 
     function onPlayPauseStateChanged() {
-        updatePlayPauseState(this.paused(), true);
+        updatePlayPauseState(this.paused());
     }
 
     function onStateChanged(event, state) {
@@ -317,11 +309,6 @@ export default function () {
         context.querySelector('.btnStop').addEventListener('click', function () {
             if (currentPlayer) {
                 playbackManager.stop(currentPlayer);
-            }
-        });
-        context.querySelector('.btnPlayPause').addEventListener('click', function () {
-            if (currentPlayer) {
-                playbackManager.playPause(currentPlayer);
             }
         });
         context.querySelector('.btnNextTrack').addEventListener('click', function () {
