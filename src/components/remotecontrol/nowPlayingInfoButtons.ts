@@ -5,13 +5,14 @@ import RemoteControlHelper from './remoteControlHelper';
 import { PlayerPlugin } from 'types/player';
 import ShuffleQueueButton from './shuffleQueueButton';
 import PlayPauseButton from './playPauseButton';
+import StopButton from './stopButton';
 
 export default class NowPlayingInfoButtons {
     audioRepeatToggleButton?: RepeatToggleButton;
     // rewindButton: RewindButton;
     // previousTrackButton: PreviousTrackButton;
     playPauseButton?: PlayPauseButton;
-    // stopButton: StopButton;
+    stopButton?: StopButton;
     // nextTrackButton: NextTrackButton;
     // fastForwardButton: FastForwardButton;
     audioShuffleQueueButton?: ShuffleQueueButton;
@@ -20,6 +21,10 @@ export default class NowPlayingInfoButtons {
         const playPauseButtonContext = context.querySelector<HTMLButtonElement>('.btnPlayPause');
         if (playPauseButtonContext) {
             this.playPauseButton = new PlayPauseButton(playPauseButtonContext);
+        }
+        const stopButtonContext = context.querySelector<HTMLButtonElement>('.btnStop');
+        if (stopButtonContext) {
+            this.stopButton = new StopButton(stopButtonContext);
         }
         const audioShuffleQueueButtonContext = context.querySelector<HTMLButtonElement>('.btnShuffleQueue');
         if (audioShuffleQueueButtonContext) {
@@ -42,24 +47,28 @@ export default class NowPlayingInfoButtons {
         }
 
         this.playPauseButton?.updatePlayerState(state);
+        this.stopButton?.updatePlayerState(state);
         this.audioShuffleQueueButton?.updatePlayerState();
         this.audioRepeatToggleButton?.updatePlayerState();
     }
 
     onPlayerChange(player: PlayerPlugin|null) {
         this.playPauseButton?.onPlayerChange(player);
+        this.stopButton?.onPlayerChange(player);
         this.audioShuffleQueueButton?.onPlayerChange(player);
         this.audioRepeatToggleButton?.onPlayerChange(player);
     }
 
     onShow(player: PlayerPlugin|null) {
         this.playPauseButton?.onShow(player);
+        this.stopButton?.onShow(player);
         this.audioShuffleQueueButton?.onShow(player);
         this.audioRepeatToggleButton?.onShow(player);
     }
 
     destroy() {
         this.playPauseButton?.destroy();
+        this.stopButton?.destroy();
         this.audioShuffleQueueButton?.destroy();
         this.audioRepeatToggleButton?.destroy();
     }
