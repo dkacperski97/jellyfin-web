@@ -46,10 +46,8 @@ export default function () {
             const playingVideo = playbackManager.isPlayingVideo() && item !== null;
             const playingAudio = !playbackManager.isPlayingVideo() && item !== null;
             const playingAudioBook = playingAudio && item.Type == 'AudioBook';
-            buttonVisible(context.querySelector('.btnRewind'), playingVideo || playingAudioBook);
             buttonVisible(context.querySelector('.btnFastForward'), playingVideo || playingAudioBook);
         } else {
-            buttonVisible(context.querySelector('.btnRewind'), item != null);
             buttonVisible(context.querySelector('.btnFastForward'), item != null);
         }
         const positionSlider = context.querySelector('.nowPlayingPositionSlider');
@@ -304,11 +302,6 @@ export default function () {
     function bindEvents(context) {
         const positionSlider = context.querySelector('.nowPlayingPositionSlider');
 
-        context.querySelector('.btnRewind').addEventListener('click', function () {
-            if (currentPlayer) {
-                playbackManager.rewind(currentPlayer);
-            }
-        });
         context.querySelector('.btnFastForward').addEventListener('click', function () {
             if (currentPlayer) {
                 playbackManager.fastForward(currentPlayer);

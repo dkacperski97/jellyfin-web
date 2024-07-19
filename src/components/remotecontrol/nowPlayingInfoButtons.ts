@@ -7,10 +7,11 @@ import ShuffleQueueButton from './shuffleQueueButton';
 import PlayPauseButton from './playPauseButton';
 import StopButton from './stopButton';
 import NextTrackButton from './nextTrackButton';
+import RewindButton from './rewindButton';
 
 export default class NowPlayingInfoButtons {
     audioRepeatToggleButton?: RepeatToggleButton;
-    // rewindButton: RewindButton;
+    rewindButton?: RewindButton;
     // previousTrackButton: PreviousTrackButton;
     playPauseButton?: PlayPauseButton;
     stopButton?: StopButton;
@@ -19,6 +20,10 @@ export default class NowPlayingInfoButtons {
     audioShuffleQueueButton?: ShuffleQueueButton;
 
     constructor(context: HTMLElement) {
+        const rewindButtonContext = context.querySelector<HTMLButtonElement>('.btnRewind');
+        if (rewindButtonContext) {
+            this.rewindButton = new RewindButton(rewindButtonContext);
+        }
         const playPauseButtonContext = context.querySelector<HTMLButtonElement>('.btnPlayPause');
         if (playPauseButtonContext) {
             this.playPauseButton = new PlayPauseButton(playPauseButtonContext);
@@ -51,6 +56,7 @@ export default class NowPlayingInfoButtons {
             RemoteControlHelper.buttonVisible(this.audioRepeatToggleButton?.button, playingAudio && !playingAudioBook);
         }
 
+        this.rewindButton?.updatePlayerState(state);
         this.playPauseButton?.updatePlayerState(state);
         this.stopButton?.updatePlayerState(state);
         this.nextTrackButton?.updatePlayerState(state);
@@ -59,6 +65,7 @@ export default class NowPlayingInfoButtons {
     }
 
     onPlayerChange(player: PlayerPlugin|null) {
+        this.rewindButton?.onPlayerChange(player);
         this.playPauseButton?.onPlayerChange(player);
         this.stopButton?.onPlayerChange(player);
         this.nextTrackButton?.onPlayerChange(player);
@@ -67,6 +74,7 @@ export default class NowPlayingInfoButtons {
     }
 
     onShow(player: PlayerPlugin|null) {
+        this.rewindButton?.onShow(player);
         this.playPauseButton?.onShow(player);
         this.stopButton?.onShow(player);
         this.nextTrackButton?.onShow(player);
@@ -75,6 +83,7 @@ export default class NowPlayingInfoButtons {
     }
 
     destroy() {
+        this.rewindButton?.destroy();
         this.playPauseButton?.destroy();
         this.stopButton?.destroy();
         this.nextTrackButton?.destroy();
