@@ -6,6 +6,7 @@ import { PlayerPlugin } from 'types/player';
 import ShuffleQueueButton from './shuffleQueueButton';
 import PlayPauseButton from './playPauseButton';
 import StopButton from './stopButton';
+import NextTrackButton from './nextTrackButton';
 
 export default class NowPlayingInfoButtons {
     audioRepeatToggleButton?: RepeatToggleButton;
@@ -13,7 +14,7 @@ export default class NowPlayingInfoButtons {
     // previousTrackButton: PreviousTrackButton;
     playPauseButton?: PlayPauseButton;
     stopButton?: StopButton;
-    // nextTrackButton: NextTrackButton;
+    nextTrackButton?: NextTrackButton;
     // fastForwardButton: FastForwardButton;
     audioShuffleQueueButton?: ShuffleQueueButton;
 
@@ -25,6 +26,10 @@ export default class NowPlayingInfoButtons {
         const stopButtonContext = context.querySelector<HTMLButtonElement>('.btnStop');
         if (stopButtonContext) {
             this.stopButton = new StopButton(stopButtonContext);
+        }
+        const nextTrackButtonContext = context.querySelector<HTMLButtonElement>('.btnNextTrack');
+        if (nextTrackButtonContext) {
+            this.nextTrackButton = new NextTrackButton(nextTrackButtonContext);
         }
         const audioShuffleQueueButtonContext = context.querySelector<HTMLButtonElement>('.btnShuffleQueue');
         if (audioShuffleQueueButtonContext) {
@@ -48,6 +53,7 @@ export default class NowPlayingInfoButtons {
 
         this.playPauseButton?.updatePlayerState(state);
         this.stopButton?.updatePlayerState(state);
+        this.nextTrackButton?.updatePlayerState(state);
         this.audioShuffleQueueButton?.updatePlayerState();
         this.audioRepeatToggleButton?.updatePlayerState();
     }
@@ -55,6 +61,7 @@ export default class NowPlayingInfoButtons {
     onPlayerChange(player: PlayerPlugin|null) {
         this.playPauseButton?.onPlayerChange(player);
         this.stopButton?.onPlayerChange(player);
+        this.nextTrackButton?.onPlayerChange(player);
         this.audioShuffleQueueButton?.onPlayerChange(player);
         this.audioRepeatToggleButton?.onPlayerChange(player);
     }
@@ -62,6 +69,7 @@ export default class NowPlayingInfoButtons {
     onShow(player: PlayerPlugin|null) {
         this.playPauseButton?.onShow(player);
         this.stopButton?.onShow(player);
+        this.nextTrackButton?.onShow(player);
         this.audioShuffleQueueButton?.onShow(player);
         this.audioRepeatToggleButton?.onShow(player);
     }
@@ -69,6 +77,7 @@ export default class NowPlayingInfoButtons {
     destroy() {
         this.playPauseButton?.destroy();
         this.stopButton?.destroy();
+        this.nextTrackButton?.destroy();
         this.audioShuffleQueueButton?.destroy();
         this.audioRepeatToggleButton?.destroy();
     }

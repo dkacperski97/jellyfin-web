@@ -41,7 +41,6 @@ export default function () {
 
         remoteControlSection.updatePlayerState(context, supportedCommands, currentPlayer);
 
-        buttonVisible(context.querySelector('.btnNextTrack'), item != null);
         buttonVisible(context.querySelector('.btnPreviousTrack'), item != null);
         if (layoutManager.mobile) {
             const playingVideo = playbackManager.isPlayingVideo() && item !== null;
@@ -305,11 +304,6 @@ export default function () {
     function bindEvents(context) {
         const positionSlider = context.querySelector('.nowPlayingPositionSlider');
 
-        context.querySelector('.btnNextTrack').addEventListener('click', function () {
-            if (currentPlayer) {
-                playbackManager.nextTrack(currentPlayer);
-            }
-        });
         context.querySelector('.btnRewind').addEventListener('click', function () {
             if (currentPlayer) {
                 playbackManager.rewind(currentPlayer);
