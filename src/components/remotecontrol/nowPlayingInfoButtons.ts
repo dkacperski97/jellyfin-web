@@ -8,6 +8,7 @@ import PlayPauseButton from './playPauseButton';
 import StopButton from './stopButton';
 import NextTrackButton from './nextTrackButton';
 import RewindButton from './rewindButton';
+import FastForwardButton from './fastForwardButton';
 
 export default class NowPlayingInfoButtons {
     audioRepeatToggleButton?: RepeatToggleButton;
@@ -16,7 +17,7 @@ export default class NowPlayingInfoButtons {
     playPauseButton?: PlayPauseButton;
     stopButton?: StopButton;
     nextTrackButton?: NextTrackButton;
-    // fastForwardButton: FastForwardButton;
+    fastForwardButton?: FastForwardButton;
     audioShuffleQueueButton?: ShuffleQueueButton;
 
     constructor(context: HTMLElement) {
@@ -35,6 +36,10 @@ export default class NowPlayingInfoButtons {
         const nextTrackButtonContext = context.querySelector<HTMLButtonElement>('.btnNextTrack');
         if (nextTrackButtonContext) {
             this.nextTrackButton = new NextTrackButton(nextTrackButtonContext);
+        }
+        const fastForwardButtonContext = context.querySelector<HTMLButtonElement>('.btnFastForward');
+        if (fastForwardButtonContext) {
+            this.fastForwardButton = new FastForwardButton(fastForwardButtonContext);
         }
         const audioShuffleQueueButtonContext = context.querySelector<HTMLButtonElement>('.btnShuffleQueue');
         if (audioShuffleQueueButtonContext) {
@@ -60,6 +65,7 @@ export default class NowPlayingInfoButtons {
         this.playPauseButton?.updatePlayerState(state);
         this.stopButton?.updatePlayerState(state);
         this.nextTrackButton?.updatePlayerState(state);
+        this.fastForwardButton?.updatePlayerState(state);
         this.audioShuffleQueueButton?.updatePlayerState();
         this.audioRepeatToggleButton?.updatePlayerState();
     }
@@ -69,6 +75,7 @@ export default class NowPlayingInfoButtons {
         this.playPauseButton?.onPlayerChange(player);
         this.stopButton?.onPlayerChange(player);
         this.nextTrackButton?.onPlayerChange(player);
+        this.fastForwardButton?.onPlayerChange(player);
         this.audioShuffleQueueButton?.onPlayerChange(player);
         this.audioRepeatToggleButton?.onPlayerChange(player);
     }
@@ -78,6 +85,7 @@ export default class NowPlayingInfoButtons {
         this.playPauseButton?.onShow(player);
         this.stopButton?.onShow(player);
         this.nextTrackButton?.onShow(player);
+        this.fastForwardButton?.onShow(player);
         this.audioShuffleQueueButton?.onShow(player);
         this.audioRepeatToggleButton?.onShow(player);
     }
@@ -87,6 +95,7 @@ export default class NowPlayingInfoButtons {
         this.playPauseButton?.destroy();
         this.stopButton?.destroy();
         this.nextTrackButton?.destroy();
+        this.fastForwardButton?.destroy();
         this.audioShuffleQueueButton?.destroy();
         this.audioRepeatToggleButton?.destroy();
     }
