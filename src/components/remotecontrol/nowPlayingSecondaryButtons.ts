@@ -6,21 +6,25 @@ import RemoteControlHelper from './remoteControlHelper';
 import { PlayerPlugin } from 'types/player';
 import SubtitlesButton from './subtitlesButton';
 import AudioTracksButton from './audioTracksButton';
-import NowPlayingPageUserDataButtons from './nowPlayingPageUserDataButtons';
+import NowPlayingPageUserDataButton from './nowPlayingPageUserDataButton';
 import { appRouter } from '../router/appRouter';
 import ToggleFullscreenButton from './toggleFullscreenButton';
 import ShuffleQueueButton from './shuffleQueueButton';
+import { BaseItemDto } from '@jellyfin/sdk/lib/generated-client';
 
 export default class NowPlayingSecondaryButtons {
     audioTracksButton: AudioTracksButton;
     subtitlesButton: SubtitlesButton;
-    nowPlayingPageUserDataButtons: NowPlayingPageUserDataButtons;
+    nowPlayingPageUserDataButtons?: NowPlayingPageUserDataButton;
     toggleFullscreenButton: ToggleFullscreenButton;
     videoShuffleQueueButton?: ShuffleQueueButton;
     videoRepeatToggleButton?: RepeatToggleButton;
 
     constructor(context: HTMLElement) {
-        this.nowPlayingPageUserDataButtons = new NowPlayingPageUserDataButtons();
+        const nowPlayingPageUserDataButtonsContext = context.querySelector<HTMLElement>('.nowPlayingPageUserDataButtons');
+        if (nowPlayingPageUserDataButtonsContext) {
+            this.nowPlayingPageUserDataButtons = new NowPlayingPageUserDataButton(nowPlayingPageUserDataButtonsContext);
+        }
         this.audioTracksButton = new AudioTracksButton(context);
         this.subtitlesButton = new SubtitlesButton(context);
         this.toggleFullscreenButton = new ToggleFullscreenButton(context);
@@ -44,7 +48,7 @@ export default class NowPlayingSecondaryButtons {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updatePlayerState(player: PlayerPlugin|null, context: HTMLElement, state: any) {
+    updatePlayerState(player: PlayerPlugin|null, context: HTMLElement, state: any, fullItem: BaseItemDto|null) {
         const item = state.NowPlayingItem;
         this.audioTracksButton.updatePlayerState(player, context, state);
         this.subtitlesButton.updatePlayerState(player, context, state);
@@ -59,7 +63,7 @@ export default class NowPlayingSecondaryButtons {
 
         this.videoShuffleQueueButton?.updatePlayerState();
         this.videoRepeatToggleButton?.updatePlayerState();
-        this.nowPlayingPageUserDataButtons.updatePlayerState(context, state);
+        this.nowPlayingPageUserDataButtons?.updatePlayerState(fullItem);
     }
 
     onPlayerChange(player: PlayerPlugin|null) {

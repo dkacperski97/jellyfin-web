@@ -18,10 +18,8 @@ import VolumeControl from './volumeControl';
 import RemoteControlSection from './remoteControlSection';
 import NowPlayingPageImage from './nowPlayingPageImage';
 import ToggleContextMenuButton from './toggleContextMenuButton';
-import NowPlayingInfoContainerMedia from './nowPlayingInfoContainerMedia';
 import NowPlayingPageBackdrop from './nowPlayingPageBackdrop';
-import NowPlayingInfoButtons from './nowPlayingInfoButtons';
-import NowPlayingSecondaryButtons from './nowPlayingSecondaryButtons';
+import NowPlayingInfoControls from './nowPlayingInfoControls';
 
 function buttonVisible(btn, enabled) {
     if (enabled) {
@@ -66,10 +64,8 @@ export default function () {
             context.classList.add('hideVideoButtons');
         }
 
-        nowPlayingInfoButtons.updatePlayerState(state);
-        nowPlayingSecondaryButtons.updatePlayerState(player, context, state);
+        nowPlayingInfoControls.updatePlayerState(player, context, state);
         onShuffleQueueModeChange(false);
-        nowPlayingInfoContainerMedia.updatePlayerState(context, state);
         nowPlayingPageImage.updatePlayerState(context, state);
         toggleContextMenuButton.updatePlayerState(context, state);
         nowPlayingPageBackdrop.updatePlayerState(context, state);
@@ -379,8 +375,7 @@ export default function () {
         bindToPlayer(dlg, player);
         volumeControl.onPlayerChange(player);
         remoteControlSection.onPlayerChange(player);
-        nowPlayingInfoButtons.onPlayerChange(player);
-        nowPlayingSecondaryButtons.onPlayerChange(player);
+        nowPlayingInfoControls.onPlayerChange(player);
     }
 
     function init(ownerView, context) {
@@ -430,10 +425,8 @@ export default function () {
     let remoteControlSection;
     let nowPlayingPageImage;
     let toggleContextMenuButton;
-    let nowPlayingInfoContainerMedia;
     let nowPlayingPageBackdrop;
-    let nowPlayingInfoButtons;
-    let nowPlayingSecondaryButtons;
+    let nowPlayingInfoControls;
 
     const self = this;
 
@@ -444,26 +437,22 @@ export default function () {
         remoteControlSection = new RemoteControlSection(dlg);
         nowPlayingPageImage = new NowPlayingPageImage();
         toggleContextMenuButton = new ToggleContextMenuButton();
-        nowPlayingInfoContainerMedia = new NowPlayingInfoContainerMedia();
         nowPlayingPageBackdrop = new NowPlayingPageBackdrop();
-        nowPlayingInfoButtons = new NowPlayingInfoButtons(dlg);
-        nowPlayingSecondaryButtons = new NowPlayingSecondaryButtons(dlg);
+        nowPlayingInfoControls = new NowPlayingInfoControls(dlg);
     };
 
     self.onShow = function () {
         const player = playbackManager.getCurrentPlayer();
         volumeControl.onShow(player);
         remoteControlSection.onShow(player);
-        nowPlayingInfoButtons.onShow(player);
-        nowPlayingSecondaryButtons.onShow(player);
+        nowPlayingInfoControls.onShow(player);
         onShow(dlg, player);
     };
 
     self.destroy = function () {
         volumeControl.destroy();
         remoteControlSection.destroy();
-        nowPlayingInfoButtons.destroy();
-        nowPlayingSecondaryButtons.destroy();
+        nowPlayingInfoControls.destroy();
         onDialogClosed();
     };
 }
