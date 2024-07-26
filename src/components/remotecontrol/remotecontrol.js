@@ -1,11 +1,9 @@
-import datetime from '../../scripts/datetime';
 import listView from '../listview/listview';
 import imageLoader from '../images/imageLoader';
 import { playbackManager } from '../playback/playbackmanager';
 import Events from '../../utils/events.ts';
 import globalize from '../../scripts/globalize';
 import layoutManager from '../layoutManager';
-import * as userSettings from '../../scripts/settings/userSettings';
 import '../cardbuilder/card.scss';
 import '../../elements/emby-button/emby-button';
 import '../../elements/emby-button/paper-icon-button-light';
@@ -31,7 +29,6 @@ function buttonVisible(btn, enabled) {
 
 export default function () {
     function updatePlayerState(player, context, state) {
-        lastPlayerState = state;
         const item = state.NowPlayingItem;
         const playerInfo = playbackManager.getPlayerInfo();
         const supportedCommands = playerInfo.supportedCommands;
@@ -40,21 +37,8 @@ export default function () {
         remoteControlSection.updatePlayerState(context, supportedCommands, currentPlayer);
 
         buttonVisible(context.querySelector('.btnPreviousTrack'), item != null);
-        const positionSlider = context.querySelector('.nowPlayingPositionSlider');
-
-        if (positionSlider && item && item.RunTimeTicks) {
-            positionSlider.setKeyboardSteps(userSettings.skipBackLength() * 1000000 / item.RunTimeTicks,
-                userSettings.skipForwardLength() * 1000000 / item.RunTimeTicks);
-        }
-
-        if (positionSlider && !positionSlider.dragging) {
-            positionSlider.disabled = !playState.CanSeek;
-            const isProgressClear = state.MediaSource && state.MediaSource.RunTimeTicks == null;
-            positionSlider.setIsClear(isProgressClear);
-        }
 
         updatePlayPauseState(playState.IsPaused);
-        updateTimeDisplay(playState.PositionTicks, item ? item.RunTimeTicks : null);
 
         volumeControl.updatePlayerState(context, state);
 
@@ -77,24 +61,6 @@ export default function () {
         if (playlistIndicator) {
             playlistIndicator.classList.toggle('playlistIndexIndicatorPausedImage', isPaused);
         }
-    }
-
-    function updateTimeDisplay(positionTicks, runtimeTicks) {
-        const context = dlg;
-        const positionSlider = context.querySelector('.nowPlayingPositionSlider');
-
-        if (positionSlider && !positionSlider.dragging) {
-            if (runtimeTicks) {
-                let pct = positionTicks / runtimeTicks;
-                pct *= 100;
-                positionSlider.value = pct;
-            } else {
-                positionSlider.value = 0;
-            }
-        }
-
-        context.querySelector('.positionTime').innerHTML = Number.isFinite(positionTicks) ? datetime.getDisplayRunningTime(positionTicks) : '--:--';
-        context.querySelector('.runtime').innerHTML = Number.isFinite(runtimeTicks) ? datetime.getDisplayRunningTime(runtimeTicks) : '--:--';
     }
 
     function getPlaylistItems(player) {
@@ -207,17 +173,6 @@ export default function () {
         onPlaylistUpdate();
     }
 
-    function onTimeUpdate() {
-        const now = new Date().getTime();
-
-        if (now - lastUpdateTime >= 700) {
-            lastUpdateTime = now;
-            const player = this;
-            currentRuntimeTicks = playbackManager.duration(player);
-            updateTimeDisplay(playbackManager.currentTime(player) * 10000, currentRuntimeTicks);
-        }
-    }
-
     function releaseCurrentPlayer() {
         const player = currentPlayer;
 
@@ -231,7 +186,6 @@ export default function () {
             Events.off(player, 'playbackstop', onPlaybackStopped);
             Events.off(player, 'pause', onPlayPauseStateChanged);
             Events.off(player, 'unpause', onPlayPauseStateChanged);
-            Events.off(player, 'timeupdate', onTimeUpdate);
             currentPlayer = null;
         }
     }
@@ -254,7 +208,6 @@ export default function () {
             Events.on(player, 'playbackstop', onPlaybackStopped);
             Events.on(player, 'pause', onPlayPauseStateChanged);
             Events.on(player, 'unpause', onPlayPauseStateChanged);
-            Events.on(player, 'timeupdate', onTimeUpdate);
         }
     }
 
@@ -288,8 +241,6 @@ export default function () {
     }
 
     function bindEvents(context) {
-        const positionSlider = context.querySelector('.nowPlayingPositionSlider');
-
         context.querySelector('.btnPreviousTrack').addEventListener('click', function (e) {
             if (currentPlayer) {
                 if (playbackManager.isPlayingAudio(currentPlayer)) {
@@ -306,7 +257,7 @@ export default function () {
                         playbackManager.seekPercent(0, currentPlayer);
                         // This is done automatically by playbackManager, however, setting this here gives instant visual feedback.
                         // TODO: Check why seekPercent doesn't reflect the changes inmmediately, so we can remove this workaround.
-                        positionSlider.value = 0;
+                        context.querySelector('.nowPlayingPositionSlider').value = 0;
                         return;
                     }
                 }
@@ -319,27 +270,6 @@ export default function () {
                 playbackManager.previousTrack(currentPlayer);
             }
         });
-        positionSlider.addEventListener('change', function () {
-            const value = this.value;
-
-            if (currentPlayer) {
-                const newPercent = parseFloat(value);
-                playbackManager.seekPercent(newPercent, currentPlayer);
-            }
-        });
-
-        positionSlider.getBubbleText = function (value) {
-            const state = lastPlayerState;
-
-            if (!state?.NowPlayingItem || !currentRuntimeTicks) {
-                return '--:--';
-            }
-
-            let ticks = currentRuntimeTicks;
-            ticks /= 100;
-            ticks *= value;
-            return datetime.getDisplayRunningTime(ticks);
-        };
 
         const playlistContainer = context.querySelector('.playlist');
         playlistContainer.addEventListener('action-remove', function (e) {
@@ -397,18 +327,11 @@ export default function () {
 
         bindEvents(context);
         Events.on(playbackManager, 'playerchange', onPlayerChange);
-
-        if (layoutManager.tv) {
-            const positionSlider = context.querySelector('.nowPlayingPositionSlider');
-            positionSlider.classList.add('focusable');
-            positionSlider.enableKeyboardDragging();
-        }
     }
 
     function onDialogClosed() {
         releaseCurrentPlayer();
         Events.off(playbackManager, 'playerchange', onPlayerChange);
-        lastPlayerState = null;
     }
 
     function onShow(context, player) {
@@ -417,9 +340,6 @@ export default function () {
 
     let dlg;
     let currentPlayer;
-    let lastPlayerState;
-    let lastUpdateTime = 0;
-    let currentRuntimeTicks = 0;
 
     let volumeControl;
     let remoteControlSection;

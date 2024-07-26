@@ -4,11 +4,12 @@ import NowPlayingInfoContainerMedia from './nowPlayingInfoContainerMedia';
 import NowPlayingSecondaryButtons from './nowPlayingSecondaryButtons';
 import ServerConnections from 'components/ServerConnections';
 import NowPlayingPageUserDataButton from './nowPlayingPageUserDataButton';
+import SliderContainer from './sliderContainer';
 
 export default class NowPlayingInfoControls {
     nowPlayingInfoContainerMedia: NowPlayingInfoContainerMedia;
     nowPlayingPageUserDataButtonsTitle?: NowPlayingPageUserDataButton;
-    // sliderContainer: SliderContainer;
+    sliderContainer: SliderContainer;
     nowPlayingInfoButtons: NowPlayingInfoButtons;
     nowPlayingSecondaryButtons: NowPlayingSecondaryButtons;
 
@@ -20,6 +21,7 @@ export default class NowPlayingInfoControls {
             this.nowPlayingPageUserDataButtonsTitle = new NowPlayingPageUserDataButton(nowPlayingPageUserDataButtonsTitleContext);
         }
 
+        this.sliderContainer = new SliderContainer(context);
         this.nowPlayingInfoButtons = new NowPlayingInfoButtons(context);
         this.nowPlayingSecondaryButtons = new NowPlayingSecondaryButtons(context);
     }
@@ -37,21 +39,25 @@ export default class NowPlayingInfoControls {
             this.nowPlayingPageUserDataButtonsTitle?.updatePlayerState(null);
             this.nowPlayingSecondaryButtons.updatePlayerState(player, context, state, null);
         }
+        this.sliderContainer.updatePlayerState(player, state);
         this.nowPlayingInfoButtons.updatePlayerState(state);
         this.nowPlayingInfoContainerMedia.updatePlayerState(context, state);
     }
 
     onPlayerChange(player: PlayerPlugin|null) {
+        this.sliderContainer.onPlayerChange(player);
         this.nowPlayingInfoButtons.onPlayerChange(player);
         this.nowPlayingSecondaryButtons.onPlayerChange(player);
     }
 
     onShow(player: PlayerPlugin|null) {
+        this.sliderContainer.onShow(player);
         this.nowPlayingInfoButtons.onShow(player);
         this.nowPlayingSecondaryButtons.onShow(player);
     }
 
     destroy() {
+        this.sliderContainer.destroy();
         this.nowPlayingInfoButtons.destroy();
         this.nowPlayingSecondaryButtons.destroy();
     }
