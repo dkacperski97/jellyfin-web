@@ -19,14 +19,6 @@ import ToggleContextMenuButton from './toggleContextMenuButton';
 import NowPlayingPageBackdrop from './nowPlayingPageBackdrop';
 import NowPlayingInfoControls from './nowPlayingInfoControls';
 
-function buttonVisible(btn, enabled) {
-    if (enabled) {
-        btn.classList.remove('hide');
-    } else {
-        btn.classList.add('hide');
-    }
-}
-
 export default function () {
     function updatePlayerState(player, context, state) {
         const item = state.NowPlayingItem;
@@ -35,8 +27,6 @@ export default function () {
         const playState = state.PlayState || {};
 
         remoteControlSection.updatePlayerState(context, supportedCommands, currentPlayer);
-
-        buttonVisible(context.querySelector('.btnPreviousTrack'), item != null);
 
         updatePlayPauseState(playState.IsPaused);
 
@@ -241,36 +231,6 @@ export default function () {
     }
 
     function bindEvents(context) {
-        context.querySelector('.btnPreviousTrack').addEventListener('click', function (e) {
-            if (currentPlayer) {
-                if (playbackManager.isPlayingAudio(currentPlayer)) {
-                    // Cancel this event if doubleclick is fired. The actual previousTrack will be processed by the 'dblclick' event
-                    if (e.detail > 1 ) {
-                        return;
-                    }
-
-                    // Return to start of track, unless we are already (almost) at the beginning. In the latter case, continue and move
-                    // to the previous track, unless we are at the first track so no previous track exists.
-                    // currentTime is in msec.
-
-                    if (playbackManager.currentTime(currentPlayer) >= 5 * 1000 || playbackManager.getCurrentPlaylistIndex(currentPlayer) <= 0) {
-                        playbackManager.seekPercent(0, currentPlayer);
-                        // This is done automatically by playbackManager, however, setting this here gives instant visual feedback.
-                        // TODO: Check why seekPercent doesn't reflect the changes inmmediately, so we can remove this workaround.
-                        context.querySelector('.nowPlayingPositionSlider').value = 0;
-                        return;
-                    }
-                }
-                playbackManager.previousTrack(currentPlayer);
-            }
-        });
-
-        context.querySelector('.btnPreviousTrack').addEventListener('dblclick', function () {
-            if (currentPlayer) {
-                playbackManager.previousTrack(currentPlayer);
-            }
-        });
-
         const playlistContainer = context.querySelector('.playlist');
         playlistContainer.addEventListener('action-remove', function (e) {
             playbackManager.removeFromPlaylist([e.detail.playlistItemId], currentPlayer);
