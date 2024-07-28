@@ -22,8 +22,7 @@ import toast from '../toast/toast';
 import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/cardBuilderUtils';
 import { getImageUrl } from 'apps/stable/features/playback/utils/image';
-
-import VolumeControl, { getVolumeControlHtml } from './volumeControl';
+import VolumeControl from './volumeControl';
 
 function showAudioMenu(context, player, button) {
     const currentIndex = playbackManager.getAudioStreamIndex(player);
@@ -311,6 +310,8 @@ export default function () {
         updatePlayPauseState(playState.IsPaused, item != null);
         updateTimeDisplay(playState.PositionTicks, item ? item.RunTimeTicks : null);
 
+        volumeControl.updatePlayerState(context, state);
+
         if (item && item.MediaType == 'Video') {
             context.classList.remove('hideVideoButtons');
         } else {
@@ -510,7 +511,6 @@ export default function () {
         console.debug('remotecontrol event: ' + e.type);
         const player = this;
 
-        volumeControl.onPlaybackStopped(player, e, state);
         if (!state.NextMediaType) {
             updatePlayerState(player, dlg, {});
             appRouter.back();
@@ -525,7 +525,6 @@ export default function () {
         const player = this;
         updatePlayerState(player, dlg, state);
         onPlaylistUpdate();
-        volumeControl.onStateChanged(player, event, state);
     }
 
     function onTimeUpdate() {
@@ -769,7 +768,7 @@ export default function () {
     function onPlayerChange() {
         const player = playbackManager.getCurrentPlayer();
         bindToPlayer(dlg, player);
-        volumeControl.onPlayerChange(dlg, player);
+        volumeControl.onPlayerChange(player);
     }
 
     function onMessageSubmit(e) {
@@ -808,7 +807,7 @@ export default function () {
     }
 
     function init(ownerView, context) {
-        const volumecontrolHtml = getVolumeControlHtml();
+        const volumecontrolHtml = VolumeControl.getHtml();
         const optionsSection = context.querySelector('.playlistSectionButton');
         if (!layoutManager.mobile) {
             context.querySelector('.nowPlayingSecondaryButtons').insertAdjacentHTML('beforeend', volumecontrolHtml);
@@ -843,8 +842,8 @@ export default function () {
         lastPlayerState = null;
     }
 
-    function onShow(context) {
-        bindToPlayer(context, playbackManager.getCurrentPlayer());
+    function onShow(context, player) {
+        bindToPlayer(context, player);
     }
 
     let dlg;
@@ -853,18 +852,19 @@ export default function () {
     let currentPlayerSupportedCommands = [];
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
-    const volumeControl = new VolumeControl();
+    let volumeControl;
     const self = this;
 
     self.init = function (ownerView, context) {
         dlg = context;
         init(ownerView, dlg);
-        volumeControl.init(ownerView, context);
+        volumeControl = new VolumeControl(context);
     };
 
     self.onShow = function () {
-        volumeControl.onShow();
-        onShow(dlg);
+        const player = playbackManager.getCurrentPlayer();
+        volumeControl.onShow(player);
+        onShow(dlg, player);
     };
 
     self.destroy = function () {
