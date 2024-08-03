@@ -217,42 +217,42 @@ class SessionPlayer {
         return this.lastPlayerData || {};
     }
 
-    getTargets() {
-        const apiClient = getCurrentApiClient(this);
+    // getTargets() {
+    //     const apiClient = getCurrentApiClient(this);
 
-        const sessionQuery = {
-            ControllableByUserId: apiClient.getCurrentUserId()
-        };
+    //     const sessionQuery = {
+    //         ControllableByUserId: apiClient.getCurrentUserId()
+    //     };
 
-        if (apiClient) {
-            const name = this.name;
+    //     if (apiClient) {
+    //         const name = this.name;
 
-            return apiClient.getSessions(sessionQuery).then(function (sessions) {
-                return sessions.filter(function (s) {
-                    return s.DeviceId !== apiClient.deviceId();
-                }).map(function (s) {
-                    return {
-                        name: s.DeviceName,
-                        deviceName: s.DeviceName,
-                        deviceType: s.DeviceType,
-                        id: s.Id,
-                        playerName: name,
-                        appName: s.Client,
-                        playableMediaTypes: s.PlayableMediaTypes,
-                        isLocalPlayer: false,
-                        supportedCommands: s.Capabilities.SupportedCommands,
-                        user: s.UserId ? {
-                            Id: s.UserId,
-                            Name: s.UserName,
-                            PrimaryImageTag: s.UserPrimaryImageTag
-                        } : null
-                    };
-                });
-            });
-        } else {
-            return Promise.resolve([]);
-        }
-    }
+    //         return apiClient.getSessions(sessionQuery).then(function (sessions) {
+    //             return sessions.filter(function (s) {
+    //                 return s.DeviceId !== apiClient.deviceId();
+    //             }).map(function (s) {
+    //                 return {
+    //                     name: s.DeviceName,
+    //                     deviceName: s.DeviceName,
+    //                     deviceType: s.DeviceType,
+    //                     id: s.Id,
+    //                     playerName: name,
+    //                     appName: s.Client,
+    //                     playableMediaTypes: s.PlayableMediaTypes,
+    //                     isLocalPlayer: false,
+    //                     supportedCommands: s.Capabilities.SupportedCommands,
+    //                     user: s.UserId ? {
+    //                         Id: s.UserId,
+    //                         Name: s.UserName,
+    //                         PrimaryImageTag: s.UserPrimaryImageTag
+    //                     } : null
+    //                 };
+    //             });
+    //         });
+    //     } else {
+    //         return Promise.resolve([]);
+    //     }
+    // }
 
     sendCommand(command) {
         const sessionId = getActivePlayerId();

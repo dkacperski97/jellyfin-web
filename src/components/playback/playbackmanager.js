@@ -20,6 +20,18 @@ import { getItems } from '../../utils/jellyfin-apiclient/getItems.ts';
 import { getItemBackdropImageUrl } from '../../utils/jellyfin-apiclient/backdropImage';
 import { MediaType } from '@jellyfin/sdk/lib/generated-client/models/media-type';
 
+import QueueShuffleLogic from './playbackManagerLogic/queueShuffleLogic.ts';
+import RepeatModeLogic from './playbackManagerLogic/repeatModeLogic.ts';
+import VolumeLogic from './playbackManagerLogic/volumeLogic.ts';
+import MuteLogic from './playbackManagerLogic/muteLogic.ts';
+import AspectRatioLogic from './playbackManagerLogic/aspectRatioLogic.ts';
+import PlaybackRateLogic from './playbackManagerLogic/playbackRateLogic.ts';
+import BrightnessLogic from './playbackManagerLogic/brightnessLogic.ts';
+import FullscreenLogic from './playbackManagerLogic/fullscreenLogic.ts';
+import PictureInPictureLogic from './playbackManagerLogic/pictureInPictureLogic.ts';
+import AirPlayLogic from './playbackManagerLogic/airPlayLogic.ts';
+import DisplayMirrorLogic from './playbackManagerLogic/displayMirrorLogic.ts';
+
 import { MediaError } from 'types/mediaError';
 import { getMediaError } from 'utils/mediaError';
 
@@ -31,10 +43,6 @@ function enableLocalPlaylistManagement(player) {
     }
 
     return player.isLocalPlayer;
-}
-
-function supportsPhysicalVolumeControl(player) {
-    return player.isLocalPlayer && appHost.supports('physicalvolumecontrol');
 }
 
 function bindToFullscreenChange(player) {
@@ -668,12 +676,12 @@ function createTarget(instance, player) {
     };
 }
 
-function getPlayerTargets(player) {
+function getPlayerTargets(instance, player) {
     if (player.getTargets) {
         return player.getTargets();
     }
 
-    return Promise.resolve([createTarget(player)]);
+    return Promise.resolve([createTarget(instance, player)]);
 }
 
 function sortPlayerTargets(a, b) {
@@ -698,6 +706,17 @@ class PlaybackManager {
         const playerStates = {};
 
         this._playQueueManager = new PlayQueueManager();
+        this._queueShuffleLogic = new QueueShuffleLogic(this._playQueueManager);
+        this._repeatModeLogic = new RepeatModeLogic(this._playQueueManager);
+        this._volumeLogic = new VolumeLogic();
+        this._muteLogic = new MuteLogic();
+        this._aspectRatioLogic = new AspectRatioLogic();
+        this._playbackRateLogic = new PlaybackRateLogic();
+        this._brightnessLogic = new BrightnessLogic();
+        this._fullscreenLogic = new FullscreenLogic();
+        this._pictureInPictureLogic = new PictureInPictureLogic();
+        this._airPlayLogic = new AirPlayLogic();
+        this._displayMirrorLogic = new DisplayMirrorLogic();
 
         self.currentItem = function (player) {
             if (!player) {
@@ -834,7 +853,7 @@ class PlaybackManager {
         };
 
         self.getTargets = function () {
-            const promises = players.filter(displayPlayerIndividually).map(getPlayerTargets);
+            const promises = players.filter(displayPlayerIndividually).map((player) => getPlayerTargets(self, player));
 
             return Promise.all(promises).then(function (responses) {
                 return ServerConnections.currentApiClient().getCurrentUser().then(function (user) {
@@ -942,6 +961,17 @@ class PlaybackManager {
 
             currentPairingId = null;
             self._currentPlayer = player;
+            self._queueShuffleLogic._currentPlayer = player;
+            self._repeatModeLogic._currentPlayer = player;
+            self._volumeLogic._currentPlayer = player;
+            self._muteLogic._currentPlayer = player;
+            self._aspectRatioLogic._currentPlayer = player;
+            self._playbackRateLogic._currentPlayer = player;
+            self._brightnessLogic._currentPlayer = player;
+            self._fullscreenLogic._currentPlayer = player;
+            self._pictureInPictureLogic._currentPlayer = player;
+            self._airPlayLogic._currentPlayer = player;
+
             currentTargetInfo = targetInfo;
 
             if (targetInfo) {
@@ -1039,158 +1069,22 @@ class PlaybackManager {
             return getPlayer(item, getDefaultPlayOptions()) != null;
         };
 
-        self.toggleAspectRatio = function (player) {
-            player = player || self._currentPlayer;
+        self.toggleAspectRatio = this._aspectRatioLogic.toggleAspectRatio;
+        self.setAspectRatio = this._aspectRatioLogic.setAspectRatio;
+        self.getSupportedAspectRatios = this._aspectRatioLogic.getSupportedAspectRatios;
+        self.getAspectRatio = this._aspectRatioLogic.getAspectRatio;
 
-            if (player) {
-                const current = self.getAspectRatio(player);
+        self.increasePlaybackRate = this._playbackRateLogic.increasePlaybackRate;
+        self.decreasePlaybackRate = this._playbackRateLogic.decreasePlaybackRate;
+        self.getSupportedPlaybackRates = this._playbackRateLogic.getSupportedPlaybackRates;
 
-                const supported = self.getSupportedAspectRatios(player);
+        self.setBrightness = this._brightnessLogic.setBrightness;
+        self.getBrightness = this._brightnessLogic.getBrightness;
 
-                let index = -1;
-                for (let i = 0, length = supported.length; i < length; i++) {
-                    if (supported[i].id === current) {
-                        index = i;
-                        break;
-                    }
-                }
-
-                index++;
-                if (index >= supported.length) {
-                    index = 0;
-                }
-
-                self.setAspectRatio(supported[index].id, player);
-            }
-        };
-
-        self.setAspectRatio = function (val, player) {
-            player = player || self._currentPlayer;
-
-            if (player?.setAspectRatio) {
-                player.setAspectRatio(val);
-            }
-        };
-
-        self.getSupportedAspectRatios = function (player) {
-            player = player || self._currentPlayer;
-
-            if (player?.getSupportedAspectRatios) {
-                return player.getSupportedAspectRatios();
-            }
-
-            return [];
-        };
-
-        self.getAspectRatio = function (player) {
-            player = player || self._currentPlayer;
-
-            if (player?.getAspectRatio) {
-                return player.getAspectRatio();
-            }
-        };
-
-        self.increasePlaybackRate = function (player) {
-            player = player || self._currentPlayer;
-            if (player) {
-                const current = self.getPlaybackRate(player);
-                const supported = self.getSupportedPlaybackRates(player);
-
-                let index = -1;
-                for (let i = 0, length = supported.length; i < length; i++) {
-                    if (supported[i].id === current) {
-                        index = i;
-                        break;
-                    }
-                }
-
-                index = Math.min(index + 1, supported.length - 1);
-                self.setPlaybackRate(supported[index].id, player);
-            }
-        };
-
-        self.decreasePlaybackRate = function (player) {
-            player = player || self._currentPlayer;
-            if (player) {
-                const current = self.getPlaybackRate(player);
-                const supported = self.getSupportedPlaybackRates(player);
-
-                let index = -1;
-                for (let i = 0, length = supported.length; i < length; i++) {
-                    if (supported[i].id === current) {
-                        index = i;
-                        break;
-                    }
-                }
-
-                index = Math.max(index - 1, 0);
-                self.setPlaybackRate(supported[index].id, player);
-            }
-        };
-
-        self.getSupportedPlaybackRates = function (player) {
-            player = player || self._currentPlayer;
-            if (player?.getSupportedPlaybackRates) {
-                return player.getSupportedPlaybackRates();
-            }
-            return [];
-        };
-
-        let brightnessOsdLoaded;
-        self.setBrightness = function (val, player) {
-            player = player || self._currentPlayer;
-
-            if (player) {
-                if (!brightnessOsdLoaded) {
-                    brightnessOsdLoaded = true;
-                    // TODO: Have this trigger an event instead to get the osd out of here
-                    import('./brightnessosd').then();
-                }
-                player.setBrightness(val);
-            }
-        };
-
-        self.getBrightness = function (player) {
-            player = player || self._currentPlayer;
-
-            if (player) {
-                return player.getBrightness();
-            }
-        };
-
-        self.setVolume = function (val, player) {
-            player = player || self._currentPlayer;
-
-            if (player && !supportsPhysicalVolumeControl(player)) {
-                player.setVolume(val);
-            }
-        };
-
-        self.getVolume = function (player) {
-            player = player || self._currentPlayer;
-
-            if (player && !supportsPhysicalVolumeControl(player)) {
-                return player.getVolume();
-            }
-
-            return 1;
-        };
-
-        self.volumeUp = function (player) {
-            player = player || self._currentPlayer;
-
-            if (player && !supportsPhysicalVolumeControl(player)) {
-                player.volumeUp();
-            }
-        };
-
-        self.volumeDown = function (player) {
-            player = player || self._currentPlayer;
-
-            if (player && !supportsPhysicalVolumeControl(player)) {
-                player.volumeDown();
-            }
-        };
+        self.setVolume = this._volumeLogic.setVolume;
+        self.getVolume = this._volumeLogic.getVolume;
+        self.volumeUp = this._volumeLogic.volumeUp;
+        self.volumeDown = this._volumeLogic.volumeDown;
 
         self.changeAudioStream = function (player) {
             player = player || self._currentPlayer;
@@ -1416,48 +1310,10 @@ class PlaybackManager {
             });
         };
 
-        self.isFullscreen = function (player) {
-            player = player || self._currentPlayer;
-            if (!player.isLocalPlayer || player.isFullscreen) {
-                return player.isFullscreen();
-            }
-
-            if (!Screenfull.isEnabled) {
-                // iOS Safari
-                return document.webkitIsFullScreen;
-            }
-
-            return Screenfull.isFullscreen;
-        };
-
-        self.toggleFullscreen = function (player) {
-            player = player || self._currentPlayer;
-            if (!player.isLocalPlayer || player.toggleFullscreen) {
-                return player.toggleFullscreen();
-            }
-
-            if (Screenfull.isEnabled) {
-                Screenfull.toggle();
-            } else if (document.webkitIsFullScreen && document.webkitCancelFullscreen) {
-                // iOS Safari
-                document.webkitCancelFullscreen();
-            } else {
-                const elem = document.querySelector('video');
-                if (elem?.webkitEnterFullscreen) {
-                    elem.webkitEnterFullscreen();
-                }
-            }
-        };
-
-        self.togglePictureInPicture = function (player) {
-            player = player || self._currentPlayer;
-            return player.togglePictureInPicture();
-        };
-
-        self.toggleAirPlay = function (player) {
-            player = player || self._currentPlayer;
-            return player.toggleAirPlay();
-        };
+        self.isFullscreen = this._fullscreenLogic.isFullscreen;
+        self.toggleFullscreen = this._fullscreenLogic.toggleFullscreen;
+        self.togglePictureInPicture = this._pictureInPictureLogic.togglePictureInPicture;
+        self.toggleAirPlay = this._airPlayLogic.toggleAirPlay;
 
         self.getSubtitleStreamIndex = function (player) {
             player = player || self._currentPlayer;
@@ -3662,43 +3518,11 @@ class PlaybackManager {
         return false;
     }
 
-    isMuted(player = this._currentPlayer) {
-        if (player) {
-            return player.isMuted();
-        }
-
-        return false;
-    }
-
-    setMute(mute, player = this._currentPlayer) {
-        if (player) {
-            player.setMute(mute);
-        }
-    }
-
-    toggleMute(mute, player = this._currentPlayer) {
-        if (player) {
-            if (player.toggleMute) {
-                player.toggleMute();
-            } else {
-                player.setMute(!player.isMuted());
-            }
-        }
-    }
-
-    toggleDisplayMirroring() {
-        this.enableDisplayMirroring(!this.enableDisplayMirroring());
-    }
-
-    enableDisplayMirroring(enabled) {
-        if (enabled != null) {
-            const val = enabled ? '1' : '0';
-            appSettings.set('displaymirror', val);
-            return;
-        }
-
-        return (appSettings.get('displaymirror') || '') !== '0';
-    }
+    isMuted = this._muteLogic.isMuted;
+    setMute = this._muteLogic.setMute;
+    toggleMute = this._muteLogic.toggleMute;
+    toggleDisplayMirroring = this._displayMirrorLogic.toggleDisplayMirroring;
+    enableDisplayMirroring = this._displayMirrorLogic.enableDisplayMirroring;
 
     nextChapter(player = this._currentPlayer) {
         const item = this.currentItem(player);
@@ -3873,22 +3697,8 @@ class PlaybackManager {
         }
     }
 
-    setPlaybackRate(value, player = this._currentPlayer) {
-        if (player?.setPlaybackRate) {
-            player.setPlaybackRate(value);
-
-            // Save the new playback rate in the browser session, to restore when playing a new video.
-            sessionStorage.setItem('playbackRateSpeed', value);
-        }
-    }
-
-    getPlaybackRate(player = this._currentPlayer) {
-        if (player?.getPlaybackRate) {
-            return player.getPlaybackRate();
-        }
-
-        return null;
-    }
+    setPlaybackRate = this._playbackRateLogic.setPlaybackRate;
+    getPlaybackRate = this._playbackRateLogic.getPlaybackRate;
 
     instantMix(item, player = this._currentPlayer) {
         if (player?.instantMix) {
@@ -4005,59 +3815,12 @@ class PlaybackManager {
         return info ? info.supportedCommands : [];
     }
 
-    setRepeatMode(value, player = this._currentPlayer) {
-        if (player && !enableLocalPlaylistManagement(player)) {
-            return player.setRepeatMode(value);
-        }
+    setRepeatMode = this._repeatModeLogic.setRepeatMode;
+    getRepeatMode = this._repeatModeLogic.getRepeatMode;
 
-        this._playQueueManager.setRepeatMode(value);
-        Events.trigger(player, 'repeatmodechange');
-    }
-
-    getRepeatMode(player = this._currentPlayer) {
-        if (player && !enableLocalPlaylistManagement(player)) {
-            return player.getRepeatMode();
-        }
-
-        return this._playQueueManager.getRepeatMode();
-    }
-
-    setQueueShuffleMode(value, player = this._currentPlayer) {
-        if (player && !enableLocalPlaylistManagement(player)) {
-            return player.setQueueShuffleMode(value);
-        }
-
-        this._playQueueManager.setShuffleMode(value);
-        Events.trigger(player, 'shufflequeuemodechange');
-    }
-
-    getQueueShuffleMode(player = this._currentPlayer) {
-        if (player && !enableLocalPlaylistManagement(player)) {
-            return player.getQueueShuffleMode();
-        }
-
-        return this._playQueueManager.getShuffleMode();
-    }
-
-    toggleQueueShuffleMode(player = this._currentPlayer) {
-        let currentvalue;
-        if (player && !enableLocalPlaylistManagement(player)) {
-            currentvalue = player.getQueueShuffleMode();
-            switch (currentvalue) {
-                case 'Shuffle':
-                    player.setQueueShuffleMode('Sorted');
-                    break;
-                case 'Sorted':
-                    player.setQueueShuffleMode('Shuffle');
-                    break;
-                default:
-                    throw new TypeError('current value for shufflequeue is invalid');
-            }
-        } else {
-            this._playQueueManager.toggleShuffleMode();
-        }
-        Events.trigger(player, 'shufflequeuemodechange');
-    }
+    setQueueShuffleMode = this._queueShuffleLogic.setQueueShuffleMode;
+    getQueueShuffleMode = this._queueShuffleLogic.getQueueShuffleMode;
+    toggleQueueShuffleMode = this._queueShuffleLogic.toggleQueueShuffleMode;
 
     clearQueue(clearCurrentItem = false, player = this._currentPlayer) {
         if (player && !enableLocalPlaylistManagement(player)) {
