@@ -140,6 +140,8 @@ export default function (options) {
     let dialog;
     /** Options of the slideshow components */
     let currentOptions;
+    /** Whether the media info panel is currently visible. */
+    let mediaInfoPanelVisible = false;
     /** ID of the timeout used to hide the OSD. */
     let hideTimeout;
     /** Last coordinates of the mouse pointer. */
@@ -165,15 +167,14 @@ export default function (options) {
 
         let html = '';
 
-        html += '<div class="slideshowSwiperContainer"><div class="swiper-wrapper"></div></div>';
-
+        html += '<div class="slideshowMainContent">';
+        html += '<div class="slideshowSwiperContainer">';
+        html += '<div class="swiper-wrapper"></div>';
         if (slideshowOptions.interactive && !layoutManager.tv) {
             const actionButtonsOnTop = layoutManager.mobile;
 
-            html += getIcon('keyboard_arrow_left', 'btnSlideshowPrevious slideshowButton hide-mouse-idle-tv', false);
-            html += getIcon('keyboard_arrow_right', 'btnSlideshowNext slideshowButton hide-mouse-idle-tv', false);
-
             html += '<div class="topActionButtons">';
+            html += getIcon('arrow_back', 'slideshowButton btnSlideshowExit hide-mouse-idle-tv', false);
             if (actionButtonsOnTop) {
                 html += getIcon('play_arrow', 'btnSlideshowPause slideshowButton', true);
 
@@ -183,13 +184,18 @@ export default function (options) {
                 if (appHost.supports(AppFeature.Sharing)) {
                     html += getIcon('share', 'btnShare slideshowButton', true);
                 }
+                html += getIcon('info', 'btnMediaInfo slideshowButton', true);
                 if (screenfull.isEnabled) {
                     html += getIcon('fullscreen', 'btnFullscreen', true);
                     html += getIcon('fullscreen_exit', 'btnFullscreenExit hide', true);
                 }
             }
-            html += getIcon('close', 'slideshowButton btnSlideshowExit hide-mouse-idle-tv', false);
             html += '</div>';
+
+            if (!layoutManager.mobile) {
+                html += getIcon('keyboard_arrow_left', 'btnSlideshowPrevious slideshowButton hide-mouse-idle-tv', false);
+                html += getIcon('keyboard_arrow_right', 'btnSlideshowNext slideshowButton hide-mouse-idle-tv', false);
+            }
 
             if (!actionButtonsOnTop) {
                 html += '<div class="slideshowBottomBar hide">';
@@ -201,6 +207,7 @@ export default function (options) {
                 if (appHost.supports(AppFeature.Sharing)) {
                     html += getIcon('share', 'btnShare slideshowButton', true);
                 }
+                html += getIcon('info', 'btnMediaInfo slideshowButton', true);
                 if (screenfull.isEnabled) {
                     html += getIcon('fullscreen', 'btnFullscreen', true);
                     html += getIcon('fullscreen_exit', 'btnFullscreenExit hide', true);
@@ -208,9 +215,14 @@ export default function (options) {
 
                 html += '</div>';
             }
-        } else {
-            html += '<div class="slideshowImage"></div><h1 class="slideshowImageText"></h1>';
         }
+
+        html += '</div>';
+        html += '<aside class="slideshowMediaInfoPanel hide" aria-hidden="true">';
+        html += '<div class="slideshowMediaInfoHeader"><h2>Media info</h2></div>';
+        html += '<div class="slideshowMediaInfoContent"></div>';
+        html += '</aside>';
+        html += '</div>';
 
         dialog.innerHTML = html;
 
@@ -235,6 +247,11 @@ export default function (options) {
             const btnShare = dialog.querySelector('.btnShare');
             if (btnShare) {
                 btnShare.addEventListener('click', getClickHandler(share));
+            }
+
+            const btnMediaInfo = dialog.querySelector('.btnMediaInfo');
+            if (btnMediaInfo) {
+                btnMediaInfo.addEventListener('click', getClickHandler(toggleMediaInfoPanel));
             }
 
             const btnFullscreen = dialog.querySelector('.btnFullscreen');
@@ -385,6 +402,7 @@ export default function (options) {
 
             swiperInstance.on('autoplayStart', onAutoplayStart);
             swiperInstance.on('autoplayStop', onAutoplayStop);
+            swiperInstance.on('slideChange', updateMediaInfoPanel);
 
             if (useFakeZoomImage) {
                 swiperInstance.on('zoomChange', onZoomChange);
@@ -407,6 +425,10 @@ export default function (options) {
         }
     }
 
+    function getSlideFileName(item) {
+        return item?.Name || item?.name || item?.Title || item?.title || item?.fileName || item?.FileName || '';
+    }
+
     /**
      * Renders the HTML markup of a slide for an item.
      * @param {Object} item - Item used to generate the slide.
@@ -416,7 +438,8 @@ export default function (options) {
         return getSwiperSlideHtmlFromSlide({
             originalImage: getImgUrl(item, currentOptions.user),
             Id: item.Id,
-            ServerId: item.ServerId
+            ServerId: item.ServerId,
+            Name: getSlideFileName(item)
         });
     }
 
@@ -427,7 +450,8 @@ export default function (options) {
      */
     function getSwiperSlideHtmlFromSlide(item) {
         let html = '';
-        html += '<div class="swiper-slide" data-original="' + item.originalImage + '" data-itemid="' + item.Id + '" data-serverid="' + item.ServerId + '">';
+        const fileName = getSlideFileName(item);
+        html += '<div class="swiper-slide" data-original="' + item.originalImage + '" data-itemid="' + item.Id + '" data-serverid="' + item.ServerId + '" data-filename="' + fileName + '">';
         html += '<div class="swiper-zoom-container">';
         if (useFakeZoomImage) {
             html += `<div class="swiper-zoom-fakeimg swiper-zoom-fakeimg-hidden" style="background-image: url('${item.originalImage}')"></div>`;
@@ -513,6 +537,49 @@ export default function (options) {
     function fullscreenExit() {
         if (screenfull.isFullscreen) screenfull.exit();
         toggleFullscreenButtons(false);
+    }
+
+    /**
+     * Toggles the media info panel next to the slideshow.
+     */
+    function toggleMediaInfoPanel() {
+        mediaInfoPanelVisible = !mediaInfoPanelVisible;
+        setMediaInfoPanelVisible(mediaInfoPanelVisible);
+    }
+
+    /**
+     * Updates the visibility of the media info panel.
+     * @param {boolean} isVisible - Whether the media info panel should be shown.
+     */
+    function setMediaInfoPanelVisible(isVisible) {
+        const panel = dialog?.querySelector('.slideshowMediaInfoPanel');
+        const mainContent = dialog?.querySelector('.slideshowMainContent');
+        if (!panel || !mainContent) {
+            return;
+        }
+
+        panel.classList.toggle('hide', !isVisible);
+        panel.setAttribute('aria-hidden', String(!isVisible));
+        dialog.classList.toggle('slideshowHasMediaInfo', isVisible);
+
+        if (isVisible) {
+            updateMediaInfoPanel();
+        }
+    }
+
+    /**
+     * Updates the content shown in the media info panel for the active slide.
+     */
+    function updateMediaInfoPanel() {
+        const panel = dialog?.querySelector('.slideshowMediaInfoPanel');
+        const content = panel?.querySelector('.slideshowMediaInfoContent');
+        if (!content) {
+            return;
+        }
+
+        const slide = document.querySelector('.swiper-slide-active');
+        const fileName = slide?.getAttribute('data-filename') || '';
+        content.textContent = fileName || '—';
     }
 
     /**
